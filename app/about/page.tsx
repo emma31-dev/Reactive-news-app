@@ -27,8 +27,11 @@ export default function AboutPage() {
         <li><strong>Modern UI Design:</strong> Premium glassmorphism effects with backdrop blur and translucent elements</li>
         <li><strong>Responsive Design:</strong> Seamless experience across desktop, tablet, and mobile devices</li>
         <li><strong>Intelligent Caching:</strong> Lightning-fast load times with smart local storage</li>
+        <li><strong>Fresh-First Data Fetch:</strong> Always attempts live data first, falling back to cache only on network failure</li>
+        <li><strong>Optional Optimistic Cache:</strong> Environment flag to instantly display cached events while refreshing</li>
         <li><strong>Pagination System:</strong> Organized viewing with 15 items per page</li>
         <li><strong>Dark/Light Theme:</strong> Beautiful interface with automatic theme switching</li>
+        <li><strong>Data Strategy:</strong> Fresh-first fetching with selective cache fallback and new-item indicators</li>
       </ul>
 
       <h2 className="text-2xl font-semibold mb-3">Event Categories</h2>
@@ -67,7 +70,7 @@ export default function AboutPage() {
         </div>
         <div className="bg-neutral-900/20 rounded-lg p-4 border border-neutral-800">
           <h3 className="text-lg font-semibold text-indigo-400 mb-2">⚡ Live Updates</h3>
-          <p className="text-sm text-neutral-300">Real-time event generation every 15 seconds with 10-second polling for the latest blockchain activity.</p>
+          <p className="text-sm text-neutral-300">Real-time event generation every 15 seconds with 30-second polling and smart merge (new items injected, old trimmed).</p>
         </div>
         <div className="bg-neutral-900/20 rounded-lg p-4 border border-neutral-800">
           <h3 className="text-lg font-semibold text-indigo-400 mb-2">🌐 Multi-API Integration</h3>
@@ -76,6 +79,10 @@ export default function AboutPage() {
         <div className="bg-neutral-900/20 rounded-lg p-4 border border-neutral-800">
           <h3 className="text-lg font-semibold text-indigo-400 mb-2">🎨 Context Management</h3>
           <p className="text-sm text-neutral-300">Advanced React Context implementation for persistent state management across page navigation without reloading.</p>
+        </div>
+        <div className="bg-neutral-900/20 rounded-lg p-4 border border-neutral-800">
+          <h3 className="text-lg font-semibold text-indigo-400 mb-2">🧠 Fresh-First Caching</h3>
+          <p className="text-sm text-neutral-300">Live fetch preferred; cache used only when offline. Optional optimistic mode via <code>NEXT_PUBLIC_USE_OPTIMISTIC_CACHE</code>.</p>
         </div>
       </div>
 
