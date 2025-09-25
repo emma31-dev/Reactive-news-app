@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Font classes */
+body {
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Page transition (fade) */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(4px);
+}
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.page-transition-exit {
+  opacity: 1;
+}
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+/* Progressive enhancement: prefer-reduced-motion disables transitions */
+@media (prefers-reduced-motion: reduce) {
+  .page-transition-enter,
+  .page-transition-enter-active,
+  .page-transition-exit,
+  .page-transition-exit-active { transition: none !important; transform: none !important; }
+}
+
+/* Light theme (default) */
+:root {
+  --background: #ffffff;
+  --foreground: #000000; /* Explicitly set black text for light mode */
+  --surface: #fcfcfd; /* Lighter gray for light mode */
+  --border: #d9dde3;
+  --accent: #4f46e5;
+  --accent-hover: #6366f1;
+  --accent-active: #4338ca;
+}
+
+/* Dark theme overrides */
+.dark {
+  --background: #0d1117;
+  --foreground: #d1d5db; /* Light gray text for dark mode */
+  --surface: #161b22;
+  --border: #30363d;
+  --accent: #6366f1;
+  --accent-hover: #818cf8;
+  --accent-active: #4f46e5;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Ensure all text and background colors adapt to light and dark modes */
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Ensure global text color applies to all elements */
+body, p, span, div, h1, h2, h3, h4, h5, h6 {
+  color: var(--foreground) !important; /* Use !important to override other styles */
+}
+
+/* Update links to adapt to themes */
+a {
+  color: var(--accent);
+}
+a:hover {
+  color: var(--accent-hover);
+}
+a:active {
+  color: var(--accent-active);
+}
+
+/* Ensure buttons adapt to themes */
+.btn-primary {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+.btn-primary:active {
+  background: var(--accent-active);
+}
+
+/* Ensure inputs adapt to themes */
+.input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  width: 100%;
+  box-shadow: none;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-hover);
+}
+/* Dark mode input focus ring (removed invalid @apply usage) */
+.dark .input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(129,140,248,0.45);
+}
+
+/* Ensure news details div adapts to themes */
+/* Lighter surface for news details in light mode, preserve dark mode variable usage */
+.news-details { background: var(--surface); }
+:root { --surface: #fcfcfd; }
+.dark { --surface: #161b22; }
+
+/* Backdrop blur for floating decorative elements */
+.float-blur {
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  background: linear-gradient(
+    140deg,
+    rgba(99,102,241,0.10) 0%,
+    rgba(99,102,241,0.25) 40%,
+    rgba(139,92,246,0.15) 100%
+  );
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 9999px;
+  box-shadow: 0 4px 30px -5px rgba(0,0,0,0.25);
+}
+
+/* Optional smaller / larger blur variants */
+.float-blur-sm { backdrop-filter: blur(4px) saturate(140%); -webkit-backdrop-filter: blur(4px) saturate(140%); }
+.float-blur-lg { backdrop-filter: blur(14px) saturate(180%); -webkit-backdrop-filter: blur(14px) saturate(180%); }
+
+/* Floating background animations */
+@keyframes floatA {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-35px); }
+}
+@keyframes floatB {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-45px) rotate(8deg); }
+}
+@keyframes floatC {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-30px); }
+}
+
+/* White emphasis utility for floats in dark mode */
+.float-white { filter: brightness(1.15) contrast(1.1) saturate(1.05); }
+.dark .float-white { filter: brightness(2.2) contrast(1.15) saturate(1.1); }
+
+.animate-float-slow { animation: floatA 11s ease-in-out infinite; }
+.animate-float-medium { animation: floatB 7s ease-in-out infinite; }
+.animate-float-fast { animation: floatC 9s ease-in-out infinite; }
