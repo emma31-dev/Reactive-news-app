@@ -23,6 +23,7 @@ interface NewsContextType {
   newItemIds: Set<string>;
   fetchNews: () => Promise<void>;
   refreshNews: () => Promise<void>;
+  clearCache: () => void;
 }
 
 const NewsContext = createContext<NewsContextType | undefined>(undefined);
@@ -137,19 +138,49 @@ export function NewsProvider({ children }: { children: ReactNode }) {
       
       console.error('Error fetching news:', e.message);
       setError(e.message || 'Failed to fetch');
+      // Fresh-first fallback: if we have no items, try cache now
+      try {
+        if (items.length === 0) {
+          const cached = localStorage.getItem('newsCache');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setItems(parsed);
+              setLoadedFromCache(true);
+            }
+          }
+        }
+      } catch (fallbackErr) {
+        console.warn('Cache fallback failed:', fallbackErr);
+      }
     } finally {
       // Only set loading false if request wasn't aborted
       if (!abortControllerRef.current?.signal.aborted) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [items.length]);
 
   // Keep a stable reference to fetchNews
   fetchNewsRef.current = fetchNews;
 
-  // Initial fetch on mount
+  // Initial fetch on mount (fresh-first). Optionally show optimistic cache while fetching.
   useEffect(() => {
+    const optimistic = process.env.NEXT_PUBLIC_USE_OPTIMISTIC_CACHE === 'true';
+    if (optimistic) {
+      try {
+        const cached = localStorage.getItem('newsCache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setItems(parsed);
+            setLoadedFromCache(true);
+          }
+        }
+      } catch (e) {
+        console.warn('Optimistic cache load failed:', e);
+      }
+    }
     fetchNews();
   }, [fetchNews]);
 
@@ -157,58 +188,27 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     await fetchNews();
   }, [fetchNews]);
 
-  // Cache management and polling
+  // Polling only (cache bootstrap handled above)
   useEffect(() => {
-    
-    const currentLoginTime = Date.now().toString();
-    const lastLoginTime = localStorage.getItem('lastLoginTime');
-    
-    try {
-      // Load cached news if available
-      const cachedNews = localStorage.getItem('newsCache');
-      if (cachedNews) {
-        const parsedCache = JSON.parse(cachedNews);
-        const validCategories = ['Whale Watch', 'Governance', 'Security', 'Market'];
-        const isValidCache = Array.isArray(parsedCache) && parsedCache.every(item => 
-          item && 
-          typeof item.category === 'string' && 
-          validCategories.includes(item.category)
-        );
-        
-        if (isValidCache) {
-          setItems(parsedCache);
-          setLoadedFromCache(true);
-          
-          // Show cache indicator briefly
-          setTimeout(() => setLoadedFromCache(false), 3000);
-        }
-      }
-      
-      // Update login time
-      localStorage.setItem('lastLoginTime', currentLoginTime);
-    } catch (e) {
-      console.error('Error loading cache:', e);
-    }
-
-    // Set up polling every 30 seconds
     intervalRef.current = setInterval(() => {
       if (fetchNewsRef.current) {
         fetchNewsRef.current();
       }
     }, 30000);
-    
     return () => {
-      // Clean up interval
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      
-      // Cancel any pending request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, []); // No dependencies needed since we use refs
+  }, []);
+
+  const clearCache = useCallback(() => {
+    try {
+      localStorage.removeItem('newsCache');
+      setLoadedFromCache(false);
+    } catch (e) {
+      console.warn('Failed to clear cache:', e);
+    }
+  }, []);
 
   const value: NewsContextType = {
     items,
@@ -218,7 +218,8 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     loadedFromCache,
     newItemIds,
     fetchNews,
-    refreshNews
+    refreshNews,
+    clearCache
   };
 
   return (

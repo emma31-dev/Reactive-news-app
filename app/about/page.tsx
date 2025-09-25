@@ -18,7 +18,7 @@ export default function AboutPage() {
       <ul className="list-disc list-inside mb-4 space-y-2">
         <li><strong>Live Event Monitoring:</strong> Real-time on-chain event detection with 15-second generation intervals</li>
         <li><strong>REACT Price Ticker:</strong> Live cryptocurrency price tracking with real-time updates from Bybit, Binance, and CoinGecko APIs</li>
-        <li><strong>Educational Hub:</strong> Comprehensive "Learn" page with detailed <span className="!text-blue-600 dark:!text-blue-400">Reactive</span> Network documentation and glassmorphism design</li>
+  <li><strong>Educational Hub:</strong> Comprehensive &quot;Learn&quot; page with detailed <span className="!text-blue-600 dark:!text-blue-400">Reactive</span> Network documentation and glassmorphism design</li>
         <li><strong>Smart Filtering:</strong> Advanced category filtering (Whale Watch, Governance, Security, Market)</li>
         <li><strong>Save for Later:</strong> Bookmark important events for easy access in your profile</li>
         <li><strong>User Authentication:</strong> Secure login with email validation and strong password requirements</li>
@@ -96,7 +96,7 @@ export default function AboutPage() {
 
       <h2 className="text-2xl font-semibold mb-3">Why Monitor On-Chain Events?</h2>
       <p className="mb-4">
-        In the fast-paced world of blockchain technology, staying informed about on-chain activities is crucial for making informed decisions. Whether you're a DeFi trader looking for arbitrage opportunities, a validator monitoring network health, or a developer building reactive applications, real-time event monitoring gives you the edge you need.
+  In the fast-paced world of blockchain technology, staying informed about on-chain activities is crucial for making informed decisions. Whether you&apos;re a DeFi trader looking for arbitrage opportunities, a validator monitoring network health, or a developer building reactive applications, real-time event monitoring gives you the edge you need.
       </p>
 
       <h2 className="text-2xl font-semibold mb-3">Built for Hackathon Excellence</h2>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { dotSpinner } from 'ldrs';
 import { useSavedNews } from './SavedNewsContext';
 import { useNews } from './NewsContext';
