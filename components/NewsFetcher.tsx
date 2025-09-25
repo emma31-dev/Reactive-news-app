@@ -4,6 +4,7 @@ import { dotSpinner } from 'ldrs';
 import { useSavedNews } from './SavedNewsContext';
 import { useNews } from './NewsContext';
 import { VerificationBadge } from './VerificationBadge';
+import { useAuth } from './AuthContext';
 
 // Register element if not already
 if (typeof window !== 'undefined' && !customElements.get('l-dot-spinner')) {
@@ -37,6 +38,8 @@ const ITEMS_PER_PAGE = 15;
 export function NewsFetcher() {
   // Get news data from global context
   const { items, loading, error, success, loadedFromCache, newItemIds, refreshNews } = useNews();
+  // Auth (for user category preferences)
+  const { user } = useAuth();
   
   // Local state for UI management
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,9 +50,35 @@ export function NewsFetcher() {
 
   const categories = ['All', 'Whale Watch', 'Governance', 'Security', 'Market'];
 
+  // Derive enabled categories from user preferences (if logged in)
+  const enabledCategorySet = useMemo(() => {
+    const prefs = user?.prefs;
+    if (!prefs) {
+      // No user or no prefs stored -> treat all as enabled
+      return new Set(categories.filter(c => c !== 'All'));
+    }
+    const active = Object.entries(prefs)
+      .filter(([_, v]) => v)
+      .map(([k]) => k);
+    return new Set(active);
+  }, [user, categories]);
+
+  // Apply preference filtering first (unless no prefs -> all)
+  const preferenceFilteredItems = useMemo(() => {
+    // If user has prefs object AND all are false, return empty array
+    if (user?.prefs) {
+      const anyEnabled = Object.values(user.prefs).some(v => v);
+      if (!anyEnabled) return [];
+    }
+    // If enabledCategorySet includes all categories (no prefs) just return items
+    return items.filter(i => enabledCategorySet.has(i.category));
+  }, [items, enabledCategorySet, user]);
+
+  // Now apply manual UI filter
   const filteredItems = useMemo(() => {
-    return filter === 'All' ? items : items.filter(item => item.category === filter);
-  }, [items, filter]);
+    if (filter === 'All') return preferenceFilteredItems;
+    return preferenceFilteredItems.filter(item => item.category === filter);
+  }, [preferenceFilteredItems, filter]);
   
   // Reset to page 1 when filter changes
   useEffect(() => {
@@ -114,15 +143,21 @@ export function NewsFetcher() {
       <div className="flex items-center gap-2 flex-wrap">
         {categories.map(category => {
           const isActive = filter === category;
+          const isAll = category === 'All';
+          const categoryEnabled = isAll || enabledCategorySet.has(category);
+          const disableButton = !categoryEnabled;
           
           return (
             <button
               key={category}
-              onClick={() => setFilter(category)}
+              onClick={() => !disableButton && setFilter(category)}
+              disabled={disableButton}
               className={`px-3 py-1 text-xs rounded-full transition ${
                 isActive
                   ? '!bg-indigo-600 !text-white font-semibold border-2 border-indigo-600'
-                  : 'bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-300 border-2 border-transparent'
+                  : disableButton
+                    ? 'bg-slate-50 dark:bg-neutral-900 text-slate-400 dark:text-neutral-600 border-2 border-dashed border-slate-200 dark:border-neutral-700 cursor-not-allowed'
+                    : 'bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-300 border-2 border-transparent'
               }`}
               style={isActive ? { 
                 backgroundColor: '#4f46e5 !important', 
@@ -167,10 +202,17 @@ export function NewsFetcher() {
       {!loading && !error && (
         <div className="space-y-4">
           {currentItems.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-neutral-500 text-sm">
-                {items.length === 0 ? 'No events available' : `No events in "${filter}" category`}
-              </p>
+            <div className="text-center py-8 space-y-2">
+              {items.length === 0 ? (
+                <p className="text-neutral-500 text-sm">No events available</p>
+              ) : user?.prefs && !Object.values(user.prefs).some(v => v) ? (
+                <>
+                  <p className="text-neutral-500 text-sm">No categories enabled in your profile.</p>
+                  <p className="text-neutral-400 text-xs">Enable categories on the Profile page to see events.</p>
+                </>
+              ) : (
+                <p className="text-neutral-500 text-sm">No events in "{filter}" category</p>
+              )}
             </div>
           ) : (
             currentItems.map((item) => {

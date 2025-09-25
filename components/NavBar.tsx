@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useAuth } from './AuthContext';
+import WalletConnectButton from './WalletConnectButton';
 import { usePathname } from 'next/navigation';
 
 // Helper function for link classes
@@ -75,10 +76,14 @@ function NavLinks({ user, logout, toggleTheme, dark, pathname }: any) {
       <a className={linkCls('/about')} href="/about">About</a>
       <a className={linkCls('/pricing')} href="/pricing">Pricing</a>
       
-      <div className="flex items-center gap-2 ml-2 pl-2 border-l border-neutral-300 dark:border-neutral-700">
+      <div className="flex items-center gap-3 ml-2 pl-3 border-l border-neutral-300 dark:border-neutral-700">
         {!user && <a className={linkCls('/login')} href="/login"><Image src="/login.svg" alt="Login" width={16} height={16} className="dark:invert" />Login</a>}
         {!user && <a className={linkCls('/signup')} href="/signup">Sign Up</a>}
         {user && <button onClick={logout} className={linkCls('/logout')}><Image src="/logout.svg" alt="Logout" width={16} height={16} className="dark:invert" />Logout</button>}
+        {/* Wallet Connect (always visible even if not signed auth user) */}
+        <div className="ml-1 hidden lg:block">
+          <WalletConnectButton />
+        </div>
       </div>
     </nav>
   );
@@ -225,6 +230,12 @@ export function NavBar() {
             setOpen={setOpen} 
             {...navProps}
           />
+          {/* Mobile wallet button fixed near bottom inside drawer overlay (if open) */}
+          {open && (
+            <div className="fixed bottom-16 left-0 right-0 px-5 flex justify-center md:hidden z-50">
+              <WalletConnectButton compact className="w-full max-w-xs justify-center" />
+            </div>
+          )}
         </div>
       )}
     </>

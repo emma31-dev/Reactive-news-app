@@ -32,6 +32,17 @@ The app now uses a fresh-first approach:
 4. New event IDs are tracked in a `Set` to show a temporary "new" visual marker.
 5. A success state briefly flashes an "Updated" pill when new events arrive.
 
+### Price Bar Offline Fallback
+The price bar now retains and displays the last successfully fetched price if all live API calls fail. Behavior:
+
+| Condition | Display |
+|-----------|---------|
+| Live fetch succeeds | Fresh price + green pulsing "Live" badge |
+| All providers fail, cached price exists | Cached price + amber dot "Offline (cached)" |
+| All providers fail, no cached price | N/A values + error flag |
+
+Context adds `offline`, `forceRefresh()`, and `clearCachedPrice()` for manual control. Cached key: `reactPrice:last` in `localStorage`.
+
 ### Optional Optimistic Cache
 If you want to immediately show cached events while fetching fresh data, add to `.env.local`:
 

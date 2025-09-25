@@ -30,11 +30,12 @@ const DotSpinner = () => (
 
 export default function ReactPriceBar() {
   // Get price data from context - persists across page changes
-  const { priceData, loading, error } = useReactPrice();
+  const { priceData, loading, error, offline } = useReactPrice();
 
   // Always show the price bar, just indicate loading state within it
-  const isPositive = parseFloat(priceData.changePercent) >= 0;
+  const isPositive = !isNaN(parseFloat(priceData.changePercent)) && parseFloat(priceData.changePercent) >= 0;
   const hasValidData = priceData.price !== '' && priceData.price !== 'N/A';
+  const stale = !!priceData.stale || offline;
 
   return (
     <>
@@ -78,16 +79,18 @@ export default function ReactPriceBar() {
               </div>
             )}
 
-            {error && (
-              <div className="text-xs !text-white force-white-text" style={forceWhiteStyle}>
-                ⚠ API Unavailable
-              </div>
-            )}
+            {/* Suppress explicit API error message per request; silently rely on stale/offline badge */}
 
-            {hasValidData && !error && (
+            {hasValidData && !error && !stale && (
               <div className="hidden md:flex items-center text-xs space-x-1 !text-white force-white-text" style={forceWhiteStyle}>
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span className="!text-white force-white-text" style={forceWhiteStyle}>Live</span>
+              </div>
+            )}
+            {hasValidData && stale && (
+              <div className="hidden md:flex items-center text-xs space-x-1 !text-white force-white-text" style={forceWhiteStyle}>
+                <div className="w-2 h-2 bg-amber-300 rounded-full"></div>
+                <span className="!text-white force-white-text" style={forceWhiteStyle}>Offline (cached)</span>
               </div>
             )}
           </>
