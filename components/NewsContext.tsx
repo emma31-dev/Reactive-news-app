@@ -27,6 +27,9 @@ interface NewsContextType {
   clearCache: () => void;
   reloadCache: () => void;
   cumulativeTotal: number;
+  autoRefresh: boolean;
+  pauseAutoRefresh: () => void;
+  resumeAutoRefresh: () => void;
 }
 
 const NewsContext = createContext<NewsContextType | undefined>(undefined);
@@ -48,6 +51,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     }
   });
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchNewsRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -208,17 +212,31 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     await fetchNews();
   }, [fetchNews]);
 
-  // Polling only (cache bootstrap handled above)
+  // Polling only (cache bootstrap handled above) - 10s cadence to match backend interval
   useEffect(() => {
+    if (!autoRefresh) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
     intervalRef.current = setInterval(() => {
       if (fetchNewsRef.current) {
         fetchNewsRef.current();
       }
-    }, 30000);
+    }, 10000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (abortControllerRef.current) abortControllerRef.current.abort();
     };
+  }, [autoRefresh]);
+
+  const pauseAutoRefresh = useCallback(() => setAutoRefresh(false), []);
+  const resumeAutoRefresh = useCallback(() => {
+    setAutoRefresh(true);
+    // Kick an immediate fetch so user sees fresh data right after resuming
+    if (fetchNewsRef.current) fetchNewsRef.current();
   }, []);
 
   const clearCache = useCallback(() => {
@@ -281,7 +299,10 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     refreshNews,
     clearCache,
     reloadCache,
-    cumulativeTotal
+    cumulativeTotal,
+    autoRefresh,
+    pauseAutoRefresh,
+    resumeAutoRefresh
   };
 
   return (

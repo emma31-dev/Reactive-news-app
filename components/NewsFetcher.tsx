@@ -41,7 +41,7 @@ const CATEGORIES = ['All', 'Whale Watch', 'Governance', 'Security', 'Market', 'D
 
 export function NewsFetcher() {
   // Get news data from global context
-  const { items, loading, error, success, loadedFromCache, newItemIds, refreshNews, cumulativeTotal } = useNews();
+  const { items, loading, error, success, loadedFromCache, newItemIds, refreshNews, cumulativeTotal, autoRefresh, pauseAutoRefresh, resumeAutoRefresh } = useNews();
   // Auth (for user category preferences)
   const { user } = useAuth();
   
@@ -111,6 +111,24 @@ export function NewsFetcher() {
   return (
     <div className="space-y-6">
       
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={autoRefresh ? pauseAutoRefresh : resumeAutoRefresh}
+          className={`px-3 py-1.5 text-xs rounded-md font-medium border transition ${autoRefresh ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40' : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/40'}`}
+          title={autoRefresh ? 'Stop automatic fetching' : 'Resume automatic fetching'}
+        >
+          {autoRefresh ? 'Stop Auto Fetch' : 'Resume Auto Fetch'}
+        </button>
+        <button
+          onClick={refreshNews}
+          disabled={loading}
+          className="px-3 py-1.5 text-xs rounded-md font-medium border border-indigo-300 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Refreshing…' : 'Manual Refresh'}
+        </button>
+      </div>
+
       {/* Summary Stats */}
       <div className="flex flex-wrap gap-4 text-sm">
         <div className="bg-blue-100 dark:bg-blue-900/20 px-3 py-1.5 rounded-full">
