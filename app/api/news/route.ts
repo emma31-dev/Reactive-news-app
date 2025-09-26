@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 
 // Deterministic stateless generation configuration
-const MAX_ITEMS = 300; // Aligns with client cap
-const INTERVAL_MS = 5000; // 5s per interval per chain
+const MAX_ITEMS = 500; // Hard cap now 500
+const SOFT_BUFFER = 5; // Maintain a small buffer (495 + fresh batch)
+const INTERVAL_MS = 10000; // 10s per interval per chain
 const ANCHOR_EPOCH = Date.UTC(2025, 0, 1, 0, 0, 0, 0); // Fixed start point (Jan 1 2025 UTC)
 
 // Supported chains for interoperability feature
@@ -120,17 +121,21 @@ function generateDeterministicItems(): any[] {
   const now = Date.now();
   const intervalsSinceAnchor = Math.floor((now - ANCHOR_EPOCH) / INTERVAL_MS);
   const itemsPerInterval = CHAINS.length;
-  const intervalsNeeded = Math.ceil(MAX_ITEMS / itemsPerInterval);
+  // We target soft capacity (MAX - SOFT_BUFFER) so new interval arrivals conceptually 'free' 3 slots
+  const targetCapacity = MAX_ITEMS - SOFT_BUFFER; // 495
+  const intervalsNeeded = Math.ceil(targetCapacity / itemsPerInterval);
   const startInterval = Math.max(0, intervalsSinceAnchor - intervalsNeeded + 1);
   const items: any[] = [];
   for (let seq = intervalsSinceAnchor; seq >= startInterval; seq--) {
     const ts = ANCHOR_EPOCH + seq * INTERVAL_MS;
     for (const chain of CHAINS) {
       items.push(generateMockNewsItem(seq, chain, ts));
-      if (items.length >= MAX_ITEMS) break;
+      if (items.length >= targetCapacity) break;
     }
-    if (items.length >= MAX_ITEMS) break;
+    if (items.length >= targetCapacity) break;
   }
+  // Simulate trimming the oldest 3 before adding the next 3: provide slice of newest targetCapacity
+  // Client merge will then add next batch (first request after new interval) creating up to 300 then slide.
   return items;
 }
 

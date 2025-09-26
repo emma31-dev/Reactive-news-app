@@ -8,6 +8,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  // Removed loading state per request
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,13 +41,10 @@ export default function SignupPage() {
       return;
     }
 
-    setLoading(true);
     try {
       await signup(email, password);
     } catch (err) {
       setError('Failed to create account. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -94,8 +92,8 @@ export default function SignupPage() {
             required 
           />
         </div>
-        <button disabled={loading} className="btn-primary w-full rounded-sm" type="submit">
-          {loading ? 'Creating account...' : 'Create Account'}
+        <button className="btn-primary w-full rounded-sm" type="submit">
+          Create Account
         </button>
       </form>
       <p className="text-sm text-neutral-400">Already have an account? <Link className="underline" href="/login">Log in</Link></p>

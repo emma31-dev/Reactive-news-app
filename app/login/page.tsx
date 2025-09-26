@@ -7,6 +7,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Removed loading state per request (instant login UX)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,13 +31,10 @@ export default function LoginPage() {
       return;
     }
 
-    setLoading(true);
     try {
       await login(email, password);
     } catch (err) {
       setError('Invalid credentials. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -72,8 +70,8 @@ export default function LoginPage() {
             required 
           />
         </div>
-        <button disabled={loading} className="btn-primary w-full rounded-sm" type="submit">
-          {loading ? 'Logging in...' : 'Login'}
+        <button className="btn-primary w-full rounded-sm" type="submit">
+          Login
         </button>
       </form>
       <p className="text-sm text-neutral-400">No account? <Link className="underline" href="/signup">Sign up</Link></p>
