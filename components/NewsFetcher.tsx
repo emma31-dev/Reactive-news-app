@@ -40,7 +40,7 @@ const CATEGORIES = ['All', 'Whale Watch', 'Governance', 'Security', 'Market', 'D
 
 export function NewsFetcher() {
   // Get news data from global context
-  const { items, loading, error, success, loadedFromCache, newItemIds, refreshNews } = useNews();
+  const { items, loading, error, success, loadedFromCache, newItemIds, refreshNews, cumulativeTotal } = useNews();
   // Auth (for user category preferences)
   const { user } = useAuth();
   
@@ -114,7 +114,7 @@ export function NewsFetcher() {
       <div className="flex flex-wrap gap-4 text-sm">
         <div className="bg-blue-100 dark:bg-blue-900/20 px-3 py-1.5 rounded-full">
           <span className="font-medium text-blue-800 dark:text-blue-300">
-            {filteredItems.length} {filter === 'All' ? 'Total' : filter} Events
+            {filteredItems.length} {filter === 'All' ? 'Visible' : filter} • {cumulativeTotal} Total
           </span>
         </div>
         {getSavedNewsCount() > 0 && (

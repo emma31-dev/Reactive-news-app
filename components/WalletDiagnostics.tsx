@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import { useWeb3 } from './Web3Context';
 
 export function WalletDiagnostics() {
   const [diagnostics, setDiagnostics] = useState<{
@@ -19,6 +20,7 @@ export function WalletDiagnostics() {
     chainId: null,
     error: null
   });
+  const { chainId: ctxChainId, expectedChainId, wrongNetwork, configError, newsContract } = useWeb3();
 
   useEffect(() => {
     const runDiagnostics = async () => {
@@ -94,8 +96,8 @@ export function WalletDiagnostics() {
             </div>
             
             {diagnostics.chainId && (
-              <div className="text-purple-600 dark:text-purple-400">
-                Chain ID: {diagnostics.chainId}
+              <div className={`${wrongNetwork ? 'text-red-600 dark:text-red-400' : 'text-purple-600 dark:text-purple-400'}`}>
+                Chain ID: {diagnostics.chainId} {wrongNetwork && `(Expected ${expectedChainId})`}
               </div>
             )}
           </>
@@ -122,6 +124,11 @@ export function WalletDiagnostics() {
           >
             Download MetaMask →
           </a>
+        </div>
+      )}
+      {wrongNetwork && diagnostics.hasEthereum && (
+        <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-yellow-800 dark:text-yellow-300 text-xs">
+          ⚠️ Connected to wrong network. Please switch to chain ID {expectedChainId}.
         </div>
       )}
     </div>

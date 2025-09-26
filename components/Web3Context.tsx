@@ -36,12 +36,13 @@ const REACTIVE_NEWS_ABI = [
   "event ReactiveCallback(uint256 indexed newsId, string action, bytes data)"
 ];
 
-// Reactive Network Testnet Configuration
+// Reactive Network Testnet Configuration (env-driven)
+const ENV_CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_REACTIVE_CHAIN_ID || '5318008', 10);
 const REACTIVE_NETWORK_CONFIG = {
-  chainId: 5318008, // Reactive Network Testnet
+  chainId: ENV_CHAIN_ID,
   name: 'Reactive Network Testnet',
-  rpc: 'https://sepolia-rpc.reactive.network',
-  explorer: 'https://sepolia-explorer.reactive.network'
+  rpc: process.env.NEXT_PUBLIC_REACTIVE_NETWORK_RPC || 'https://sepolia-rpc.reactive.network',
+  explorer: process.env.NEXT_PUBLIC_REACTIVE_NETWORK_EXPLORER || 'https://sepolia-explorer.reactive.network'
 };
 
 interface Web3ContextType {
@@ -55,6 +56,9 @@ interface Web3ContextType {
   
   // Contract interaction
   newsContract: ethers.Contract | null;
+  expectedChainId: number; // from env
+  wrongNetwork: boolean;
+  configError: string | null;
   
   // Functions
   connect: () => Promise<void>;
@@ -74,7 +78,11 @@ interface Web3ContextType {
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
 // Replace with your deployed contract address
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_REACTIVE_NEWS_CONTRACT || "0x0000000000000000000000000000000000000000";
+const CONTRACT_ADDRESS = (process.env.NEXT_PUBLIC_REACTIVE_NEWS_CONTRACT || '').trim() || "0x0000000000000000000000000000000000000000";
+
+function isZeroAddress(addr: string) {
+  return /^0x0{40}$/i.test(addr);
+}
 
 export function Web3Provider({ children }: { children: ReactNode }) {
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
@@ -84,6 +92,16 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [newsContract, setNewsContract] = useState<ethers.Contract | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  // Validate early
+  useEffect(() => {
+    if (isZeroAddress(CONTRACT_ADDRESS)) {
+      setConfigError('Contract address not configured. Set NEXT_PUBLIC_REACTIVE_NEWS_CONTRACT in .env');
+    } else if (!ethers.isAddress(CONTRACT_ADDRESS)) {
+      setConfigError('Invalid contract address format');
+    }
+  }, []);
 
   const checkConnection = useCallback(async () => {
     try {
@@ -145,15 +163,20 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       setProvider(web3Provider);
       setSigner(signer);
       setAccount(address);
-      setChainId(Number(network.chainId));
+      const numericChain = Number(network.chainId);
+      setChainId(numericChain);
       setConnected(true);
       
       // Initialize contract (if deployed)
-      if (CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000") {
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, REACTIVE_NEWS_ABI, signer);
-        setNewsContract(contract);
+      if (!configError && !isZeroAddress(CONTRACT_ADDRESS)) {
+        try {
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, REACTIVE_NEWS_ABI, signer);
+          setNewsContract(contract);
+        } catch (e) {
+          console.error('Failed to init contract:', e);
+          setNewsContract(null);
+        }
       } else {
-        console.warn('Smart contract not deployed yet. Blockchain features will be limited.');
         setNewsContract(null);
       }
       
@@ -257,6 +280,21 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       }
     }
   };
+
+  // Reinitialize contract if signer or chain change
+  useEffect(() => {
+    if (signer && !configError && !isZeroAddress(CONTRACT_ADDRESS)) {
+      try {
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, REACTIVE_NEWS_ABI, signer);
+        setNewsContract(contract);
+      } catch (e) {
+        console.error('Contract re-init failed:', e);
+        setNewsContract(null);
+      }
+    } else {
+      setNewsContract(null);
+    }
+  }, [signer, chainId, configError]);
 
   // Contract interaction functions
   const submitNews = async (title: string, content: string, category: string): Promise<string> => {
@@ -370,6 +408,9 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     connected,
     connecting,
     newsContract,
+    expectedChainId: REACTIVE_NETWORK_CONFIG.chainId,
+    wrongNetwork: !!chainId && chainId !== REACTIVE_NETWORK_CONFIG.chainId,
+    configError,
     connect,
     disconnect,
     switchToReactiveNetwork,

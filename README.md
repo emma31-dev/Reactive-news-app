@@ -110,6 +110,37 @@ Create `.env.local` (see `env.example` if present):
 |----------|---------|
 | `NEXT_PUBLIC_USE_OPTIMISTIC_CACHE` | If `true`, show cached events instantly while fetching fresh. |
 
+### Web3 / Reactive Network Integration
+
+To enable on-chain features, add the following variables (addresses are examples — replace with your deployed contract address):
+
+```
+NEXT_PUBLIC_REACTIVE_NEWS_CONTRACT=0xYourDeployedContractAddressHere
+NEXT_PUBLIC_REACTIVE_CHAIN_ID=5318008
+NEXT_PUBLIC_REACTIVE_NETWORK_RPC=https://sepolia-rpc.reactive.network
+NEXT_PUBLIC_REACTIVE_NETWORK_EXPLORER=https://sepolia-explorer.reactive.network
+```
+
+Deployment Tips:
+- Make sure the contract address is NOT the zero address or the UI will show "Contract not ready".
+- If you change chain ID, also update RPC + Explorer endpoints accordingly.
+- After updating `.env.local`, restart `npm run dev` (Next.js only reads env vars at process start).
+- In production (e.g. Vercel), set these in the project Environment Variables UI (scope: Production + Preview).
+
+Runtime Diagnostics:
+- Use the Profile page wallet panel to view `WalletDiagnostics`.
+- If on the wrong network, a yellow warning will prompt you to switch.
+- Contract initialization problems (missing/invalid address) are surfaced in red.
+- The connect button attempts to auto-add the Reactive network if MetaMask doesn't have it.
+
+Common Issues:
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| "Contract not initialized" errors in console | Zero or invalid contract address | Set `NEXT_PUBLIC_REACTIVE_NEWS_CONTRACT` correctly |
+| Always shows wrong network | MetaMask not on chain 5318008 | Click Switch Network button or add chain manually |
+| Events not updating on-chain | Using mock backend only | Deploy / integrate real indexer + contract calls |
+| `wallet_switchEthereumChain` fails with 4902 | Chain not added | The code auto-attempts add; approve MetaMask prompt |
+
 ## 📁 Key Folders
 
 | Path | Purpose |
