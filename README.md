@@ -6,10 +6,10 @@ Real-time on-chain event monitoring, category filtering, price tracking, and edu
 
 </div>
 
-## ✨ Core Features
+##  Core Features
 
 - Live event feed (simulated backend) updating every 15s with 30s polling on the client
-- Smart category filtering: Whale Watch, Governance, Security, Market
+- Smart category filtering: Whale Watch, Governance, Security, Market, DeFi, NFT, Staking, Airdrop
 - Fresh-first fetching strategy with resilient local cache fallback
 - Optional optimistic cache bootstrap (`NEXT_PUBLIC_USE_OPTIMISTIC_CACHE=true`)
 - Save-for-later system with local persistence
@@ -22,7 +22,7 @@ Real-time on-chain event monitoring, category filtering, price tracking, and edu
 - Responsive layout (mobile → desktop)
 - Verification badge component stub (extensible for real chain proofs)
 
-## 🧠 Caching & Data Strategy
+## 🧠 Caching & Data Strategy & Preferences
 
 The app now uses a fresh-first approach:
 
@@ -42,6 +42,24 @@ The price bar now retains and displays the last successfully fetched price if al
 | All providers fail, no cached price | N/A values + error flag |
 
 Context adds `offline`, `forceRefresh()`, and `clearCachedPrice()` for manual control. Cached key: `reactPrice:last` in `localStorage`.
+
+### Preference-Based Filtering
+Users can toggle which event categories they want to see from the Profile page. Disabled categories are hidden from the feed and their filter pills are disabled. If all categories are disabled, a guidance message appears on the home feed.
+
+Default preferences for new accounts:
+
+| Category | Default | Rationale |
+|----------|---------|-----------|
+| Whale Watch | ✅ | High-signal large movements |
+| Governance | ✅ | Protocol direction & actions |
+| Security | ❌ | Opt-in (alerts can be noisy) |
+| Market | ❌ | Optional macro signals |
+| DeFi | ✅ | Core ecosystem activity |
+| NFT | ❌ | Optional vertical |
+| Staking | ❌ | Operational / validator specific |
+| Airdrop | ✅ | High user interest |
+
+Preferences are stored under `authUser` in `localStorage` and automatically migrated when new categories are introduced.
 
 ### Optional Optimistic Cache
 If you want to immediately show cached events while fetching fresh data, add to `.env.local`:

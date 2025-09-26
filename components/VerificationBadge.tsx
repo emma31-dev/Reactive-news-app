@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useWeb3 } from './Web3Context';
 
 interface VerificationBadgeProps {
@@ -17,13 +17,7 @@ export function VerificationBadge({ newsId, title, content, category }: Verifica
   const [voting, setVoting] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'unverified' | 'pending' | 'verified' | 'rejected'>('unverified');
 
-  useEffect(() => {
-    if (onChainId && connected) {
-      checkVerification();
-    }
-  }, [onChainId, connected]);
-
-  const checkVerification = async () => {
+  const checkVerification = useCallback(async () => {
     if (!onChainId) return;
     
     try {
@@ -33,7 +27,13 @@ export function VerificationBadge({ newsId, title, content, category }: Verifica
     } catch (error) {
       console.error('Error checking verification:', error);
     }
-  };
+  }, [onChainId, getNewsVerification]);
+
+  useEffect(() => {
+    if (onChainId && connected) {
+      checkVerification();
+    }
+  }, [onChainId, connected, checkVerification]);
 
   const handleSubmitToBlockchain = async () => {
     if (!connected || submitting) return;

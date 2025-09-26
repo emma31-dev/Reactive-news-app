@@ -35,6 +35,9 @@ interface NewsItem {
 
 const ITEMS_PER_PAGE = 15;
 
+// Static category list (defined outside component to avoid re-creation each render and dependency churn)
+const CATEGORIES = ['All', 'Whale Watch', 'Governance', 'Security', 'Market', 'DeFi', 'NFT', 'Staking', 'Airdrop'] as const;
+
 export function NewsFetcher() {
   // Get news data from global context
   const { items, loading, error, success, loadedFromCache, newItemIds, refreshNews } = useNews();
@@ -48,20 +51,18 @@ export function NewsFetcher() {
   const { saveNews, unsaveNews, isNewsSaved, getSavedNewsCount, getSaveLimit, canSaveMore } = useSavedNews();
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const categories = ['All', 'Whale Watch', 'Governance', 'Security', 'Market'];
-
   // Derive enabled categories from user preferences (if logged in)
   const enabledCategorySet = useMemo(() => {
     const prefs = user?.prefs;
     if (!prefs) {
       // No user or no prefs stored -> treat all as enabled
-      return new Set(categories.filter(c => c !== 'All'));
+      return new Set(CATEGORIES.filter(c => c !== 'All'));
     }
     const active = Object.entries(prefs)
       .filter(([_, v]) => v)
       .map(([k]) => k);
     return new Set(active);
-  }, [user, categories]);
+  }, [user]);
 
   // Apply preference filtering first (unless no prefs -> all)
   const preferenceFilteredItems = useMemo(() => {
@@ -141,7 +142,7 @@ export function NewsFetcher() {
 
       {/* Filter Buttons */}
       <div className="flex items-center gap-2 flex-wrap">
-        {categories.map(category => {
+        {CATEGORIES.map(category => {
           const isActive = filter === category;
           const isAll = category === 'All';
           const categoryEnabled = isAll || enabledCategorySet.has(category);
@@ -211,7 +212,7 @@ export function NewsFetcher() {
                   <p className="text-neutral-400 text-xs">Enable categories on the Profile page to see events.</p>
                 </>
               ) : (
-                <p className="text-neutral-500 text-sm">No events in "{filter}" category</p>
+                <p className="text-neutral-500 text-sm">No events in &quot;{filter}&quot; category</p>
               )}
             </div>
           ) : (

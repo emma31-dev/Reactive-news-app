@@ -4,8 +4,26 @@ import { NextResponse } from 'next/server';
 let newsCache: any[] = [];
 
 // --- Mock Data Generation ---
-const categories = ["Whale Watch", "Governance", "Security", "Market"];
-const authors = ["On-Chain Monitor", "DAO Tracker", "Security Bot", "Market Analyst"];
+const categories = [
+  "Whale Watch",
+  "Governance",
+  "Security",
+  "Market",
+  "DeFi",
+  "NFT",
+  "Staking",
+  "Airdrop"
+];
+const authors = [
+  "On-Chain Monitor",
+  "DAO Tracker",
+  "Security Bot",
+  "Market Analyst",
+  "DeFi Strategist",
+  "NFT Curator",
+  "Staking Sentinel",
+  "Airdrop Tracker"
+];
 
 const onChainEvents = {
   "Whale Watch": [
@@ -31,6 +49,30 @@ const onChainEvents = {
     { event: "ArbitrageOpportunity", description: "Cross-chain arbitrage detected" },
     { event: "LiquidationEvent", description: "Position liquidation executed" },
     { event: "YieldHarvested", description: "Yield farming rewards claimed" }
+  ],
+  "DeFi": [
+    { event: "TVLShift", description: "Significant change in total value locked" },
+    { event: "ProtocolUpgrade", description: "DeFi protocol governance upgrade executed" },
+    { event: "LiquidityMiningStart", description: "New liquidity mining campaign launched" },
+    { event: "StablecoinRebalance", description: "Stablecoin reserve rebalance detected" }
+  ],
+  "NFT": [
+    { event: "CollectionMint", description: "High-demand NFT mint activity" },
+    { event: "FloorPriceMove", description: "Notable NFT floor price movement" },
+    { event: "WhaleSweep", description: "NFT collection bulk purchase by whale" },
+    { event: "TraitRaritySale", description: "Rare trait NFT sale executed" }
+  ],
+  "Staking": [
+    { event: "ValidatorJoined", description: "New validator joined staking set" },
+    { event: "UnbondingStarted", description: "Large unbonding operation initiated" },
+    { event: "RewardDistribution", description: "Staking rewards distributed" },
+    { event: "SlashEvent", description: "Validator slashing event detected" }
+  ],
+  "Airdrop": [
+    { event: "SnapshotTaken", description: "Airdrop snapshot block recorded" },
+    { event: "ClaimWindowOpen", description: "Token claim window opened" },
+    { event: "UnclaimedReminder", description: "Reminder for unclaimed airdrop tokens" },
+    { event: "ClaimSurge", description: "Spike in airdrop claim transactions" }
   ]
 };
 

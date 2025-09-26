@@ -1,5 +1,6 @@
 import './globals.css';
 import React from 'react';
+import Image from 'next/image';
 import { AuthProvider } from '../components/AuthContext';
 import { SavedNewsProvider } from '../components/SavedNewsContext';
 import { ReactPriceProvider } from '../components/ReactPriceContext';
@@ -50,9 +51,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="min-h-screen flex flex-col relative overflow-hidden">
             {/* Floating decorative SVGs (fixed to viewport) */}
             <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
-              <img src="/float1.svg" alt="" className="float-blur float-white opacity-55 dark:opacity-40 animate-float-slow motion-reduce:animate-none absolute top-16 left-[6%] w-32 md:w-48 select-none" />
-              <img src="/float2.svg" alt="" className="float-blur float-white opacity-65 dark:opacity-45 animate-float-medium motion-reduce:animate-none absolute bottom-28 -right-16 md:-right-28 w-64 md:w-[420px] select-none -rotate-12" />
-              <img src="/float3.svg" alt="" className="float-blur float-white opacity-70 dark:opacity-55 animate-float-fast motion-reduce:animate-none absolute bottom-4 left-4 w-48 md:w-64 select-none" />
+              <Image src="/float1.svg" alt="" width={192} height={192} className="float-blur float-white opacity-55 dark:opacity-40 animate-float-slow motion-reduce:animate-none absolute top-16 left-[6%] w-32 md:w-48 select-none" priority />
+              <Image src="/float2.svg" alt="" width={420} height={420} className="float-blur float-white opacity-65 dark:opacity-45 animate-float-medium motion-reduce:animate-none absolute bottom-28 -right-16 md:-right-28 w-64 md:w-[420px] select-none -rotate-12" />
+              <Image src="/float3.svg" alt="" width={256} height={256} className="float-blur float-white opacity-70 dark:opacity-55 animate-float-fast motion-reduce:animate-none absolute bottom-4 left-4 w-48 md:w-64 select-none" />
             </div>
             {/* Content backdrop so floats show softly behind */}
             <div className="flex-1 flex flex-col bg-white/75 dark:bg-black/70 backdrop-blur-sm supports-[backdrop-filter]:bg-white/55 dark:supports-[backdrop-filter]:bg-black/55 transition-colors">

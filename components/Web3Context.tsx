@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ethers } from 'ethers';
 
 // Extend window interface for MetaMask
@@ -85,14 +85,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const [connecting, setConnecting] = useState(false);
   const [newsContract, setNewsContract] = useState<ethers.Contract | null>(null);
 
-  // Check for existing connection
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      checkConnection();
-    }
-  }, []);
-
-  const checkConnection = async () => {
+  const checkConnection = useCallback(async () => {
     try {
       if (!window.ethereum) return;
       
@@ -105,7 +98,28 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error checking connection:', error);
     }
-  };
+  }, []);
+
+  // Stable callbacks for event handlers
+  const handleAccountsChanged = useCallback((accounts: string[]) => {
+    if (accounts.length === 0) {
+      disconnect();
+    } else {
+      // Reconnect with new account
+      checkConnection();
+    }
+  }, [checkConnection]);
+
+  const handleChainChanged = useCallback(() => {
+    window.location.reload();
+  }, []);
+
+  // Check for existing connection
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.ethereum) {
+      checkConnection();
+    }
+  }, [checkConnection]);
 
   const connectWallet = async (web3Provider?: ethers.BrowserProvider) => {
     try {
@@ -202,19 +216,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleAccountsChanged = (accounts: string[]) => {
-    if (accounts.length === 0) {
-      disconnect();
-    } else {
-      // Reconnect with new account
-      checkConnection();
-    }
-  };
-
-  const handleChainChanged = () => {
-    // Reload page on chain change to avoid issues
-    window.location.reload();
-  };
+  // (handlers moved above with useCallback)
 
   const switchToReactiveNetwork = async () => {
     if (!window.ethereum) {

@@ -28,14 +28,7 @@ function WalletSection() {
   const [balance, setBalance] = React.useState<string>('0.0000');
   const isCorrectNetwork = chainId === 5318008; // Reactive Network Testnet
   
-  // Fetch balance when connected
-  React.useEffect(() => {
-    if (connected && account) {
-      fetchBalance();
-    }
-  }, [connected, account, chainId]);
-  
-  const fetchBalance = async () => {
+  const fetchBalance = React.useCallback(async () => {
     try {
       if (typeof window !== 'undefined' && (window as any).ethereum) {
         const { ethers } = await import('ethers');
@@ -46,7 +39,14 @@ function WalletSection() {
     } catch (error) {
       console.error('Failed to fetch balance:', error);
     }
-  };
+  }, [account]);
+
+  // Fetch balance when connected
+  React.useEffect(() => {
+    if (connected && account) {
+      fetchBalance();
+    }
+  }, [connected, account, chainId, fetchBalance]);
 
   return (
     <section className="space-y-4">
@@ -216,7 +216,16 @@ function ProfileContent() {
   const { savedNews, unsaveNews, getSavedNewsCount } = useSavedNews();
   const mockName = user?.email?.split('@')[0] || 'User';
   const [avatar, setAvatar] = React.useState<string | null>(null);
-  const [prefs, setPrefs] = React.useState(() => user?.prefs || { 'Whale Watch': true, 'Governance': true, 'Security': false, 'Market': false });
+  const [prefs, setPrefs] = React.useState(() => user?.prefs || {
+    'Whale Watch': true,
+    'Governance': true,
+    'Security': false,
+    'Market': false,
+    'DeFi': true,
+    'NFT': false,
+    'Staking': false,
+    'Airdrop': true,
+  });
   const [saving, setSaving] = React.useState(false);
   const [savedAt, setSavedAt] = React.useState<number | null>(null);
   const [showAllSaved, setShowAllSaved] = React.useState(false);
@@ -271,20 +280,34 @@ function ProfileContent() {
         <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-500">Event Preferences</h3>
         <p className="text-xs text-neutral-400 mb-4">Select which on-chain event types you want to monitor</p>
         <div className="flex flex-wrap items-center gap-2">
-          {Object.entries(prefs).map(([key, val]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => togglePref(key as keyof typeof prefs)}
-              className={`px-3 py-1 text-xs rounded-full transition ${
-                val
-                  ? 'bg-indigo-600 text-white font-semibold'
-                  : 'bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-300'
-              }`}
-            >
-              {key}
-            </button>
-          ))}
+          {(
+            [
+              'Whale Watch',
+              'Governance',
+              'Security',
+              'Market',
+              'DeFi',
+              'NFT',
+              'Staking',
+              'Airdrop',
+            ] as (keyof typeof prefs)[]
+          ).map((key) => {
+            const val = prefs[key];
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => togglePref(key)}
+                className={`px-3 py-1 text-xs rounded-full transition ${
+                  val
+                    ? 'bg-indigo-600 text-white font-semibold'
+                    : 'bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-300'
+                }`}
+              >
+                {key}
+              </button>
+            );
+          })}
         </div>
         <div className="flex items-center gap-3 pt-2">
             {savedAt && !saving && (

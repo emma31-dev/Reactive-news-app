@@ -7,7 +7,22 @@ interface UserPrefs {
   'Governance': boolean;
   'Security': boolean;
   'Market': boolean;
+  'DeFi': boolean;
+  'NFT': boolean;
+  'Staking': boolean;
+  'Airdrop': boolean;
 }
+
+const defaultPrefs: UserPrefs = {
+  'Whale Watch': true,
+  'Governance': true,
+  'Security': false,
+  'Market': false,
+  'DeFi': true,
+  'NFT': false,
+  'Staking': false,
+  'Airdrop': true,
+};
 
 interface StoredUser {
   email: string;
@@ -34,16 +49,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const parsedUser = JSON.parse(stored);
         // Check if user has old preference structure and migrate
-        if (parsedUser.prefs && ('btc' in parsedUser.prefs || 'eth' in parsedUser.prefs)) {
-          // Clear old preferences and use new structure
-          const newUser = {
-            ...parsedUser,
-            prefs: { 'Whale Watch': true, 'Governance': true, 'Security': false, 'Market': false }
-          };
+        if (parsedUser.prefs) {
+          // Determine if migration needed (missing any new keys)
+            const needsMigration = Object.keys(defaultPrefs).some(k => !(k in parsedUser.prefs));
+            if (needsMigration) {
+              const migrated = { ...defaultPrefs, ...parsedUser.prefs };
+              const newUser = { ...parsedUser, prefs: migrated };
+              localStorage.setItem('authUser', JSON.stringify(newUser));
+              setUser(newUser);
+            } else {
+              setUser(parsedUser);
+            }
+        } else {
+          // No prefs stored, attach defaults
+          const newUser = { ...parsedUser, prefs: defaultPrefs };
           localStorage.setItem('authUser', JSON.stringify(newUser));
           setUser(newUser);
-        } else {
-          setUser(parsedUser);
         }
       } catch (_) {
         // Corrupted local storage entry; clear it.
@@ -53,28 +74,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signup = async (email: string, password: string) => {
-    // Mock: simply store user
-    const mockUser: StoredUser = { email, prefs: { 'Whale Watch': true, 'Governance': true, 'Security': false, 'Market': false } };
+    const mockUser: StoredUser = { email, prefs: defaultPrefs };
     localStorage.setItem('authUser', JSON.stringify(mockUser));
     setUser(mockUser);
     router.push('/');
   };
 
   const login = async (email: string, password: string) => {
-    // Mock: accept any credentials; preserve prefs if same user
     let existingRaw = localStorage.getItem('authUser');
-    let prefs: UserPrefs = { 'Whale Watch': true, 'Governance': true, 'Security': false, 'Market': false };
+    let prefs: UserPrefs = defaultPrefs;
     if (existingRaw) {
       try {
         const existing: StoredUser = JSON.parse(existingRaw);
         if (existing.email === email && existing.prefs) {
-          prefs = existing.prefs;
+          // Merge existing with defaults to pick up new keys
+          prefs = { ...defaultPrefs, ...existing.prefs };
         } else if (existing.email !== email) {
-          // overwrite user but start with defaults
-          prefs = { 'Whale Watch': true, 'Governance': true, 'Security': false, 'Market': false };
+          prefs = defaultPrefs;
         }
       } catch (_) {
-        // If parse fails, reset
         existingRaw = null;
       }
     }
