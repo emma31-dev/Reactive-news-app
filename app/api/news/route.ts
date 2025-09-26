@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server';
 
-// In-memory "database"
+// In-memory cache (per lambda instance). We generate items lazily per request based on elapsed time.
 let newsCache: any[] = [];
+let lastGenerationTime: number = Date.now();
+
+// Supported chains for interoperability feature
+const CHAINS = [
+  'Ethereum',
+  'Avalanche',
+  'Base',
+  'BNB Smart Chain',
+  'Arbitrum'
+];
 
 // --- Mock Data Generation ---
 const categories = [
@@ -76,7 +86,7 @@ const onChainEvents = {
   ]
 };
 
-function generateMockNewsItem() {
+function generateMockNewsItem(chain?: string) {
   const category = categories[Math.floor(Math.random() * categories.length)];
   const author = authors[Math.floor(Math.random() * authors.length)];
   const randomValue = Math.floor(Math.random() * 10000) + 100;
@@ -89,6 +99,7 @@ function generateMockNewsItem() {
     author: author,
     date: new Date().toISOString(),
     category: category,
+    chain: chain || 'Reactive',
     eventType: eventData.event,
     transactionHash: `0x${Math.random().toString(16).slice(2, 64)}`,
     fromAddress: `reactive1${Math.random().toString(16).slice(2, 38)}`,
@@ -100,42 +111,46 @@ function generateMockNewsItem() {
 }
 
 // --- Live Monitor Simulation ---
-let isMonitorRunning = false;
-let newsIdCounter = 1; // Start from 1 for 0001, 0002, etc.
+// We keep an incrementing counter; in serverless cold starts this will reset, so we also embed a timestamp
+let newsIdCounter = 1;
 
 // Function to generate 4-digit zero-padded ID
 function generateNewsId(): string {
-  const id = newsIdCounter.toString().padStart(4, '0');
+  // Include milliseconds to greatly reduce collision chance after cold start
+  const base = newsIdCounter.toString().padStart(4, '0');
+  const id = `${Date.now()}-${base}`;
   newsIdCounter++;
   return id;
 }
 
-function startLiveMonitor() {
-  if (isMonitorRunning) return;
-  isMonitorRunning = true;
-  
-
-
-  // Pre-fill with a few items
-  if (newsCache.length === 0) {
-    for (let i = 0; i < 5; i++) {
-      newsCache.unshift(generateMockNewsItem());
-    }
-  }
-
-  setInterval(() => {
-    const newItem = generateMockNewsItem();
-    newsCache.unshift(newItem);
-
-    // Keep the cache size at 90
-    if (newsCache.length > 90) {
-      const removed = newsCache.pop();
-    }
-  }, 15000); // Generate a new event every 15 seconds
+// Seed initial cache with a few items (one per chain) only once per instance
+if (newsCache.length === 0) {
+  CHAINS.forEach(chain => {
+    newsCache.unshift(generateMockNewsItem(chain));
+  });
 }
 
-// Start the monitor when the server starts
-startLiveMonitor();
+/**
+ * Lazily generate new items based on elapsed time since last request.
+ * For every 5s interval elapsed, generate one item PER CHAIN to reflect interoperability.
+ */
+function generateElapsedItems() {
+  const now = Date.now();
+  const elapsedMs = now - lastGenerationTime;
+  const INTERVAL = 5000; // 5 seconds
+  if (elapsedMs < INTERVAL) return; // less than one interval
+  const intervals = Math.floor(elapsedMs / INTERVAL);
+  for (let i = 0; i < intervals; i++) {
+    for (const chain of CHAINS) {
+      newsCache.unshift(generateMockNewsItem(chain));
+    }
+  }
+  // Trim to 300 (keep newest)
+  if (newsCache.length > 300) {
+    newsCache = newsCache.slice(0, 300);
+  }
+  lastGenerationTime = now;
+}
 
 
 /**
@@ -144,6 +159,8 @@ startLiveMonitor();
  */
 export async function GET() {
   try {
+    // Generate any elapsed items (serverless-friendly)
+    generateElapsedItems();
     // Return the data from the in-memory cache
     return NextResponse.json(newsCache);
   } catch (error) {

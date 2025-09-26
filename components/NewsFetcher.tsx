@@ -27,13 +27,14 @@ interface NewsItem {
   author: string;
   date: string;
   category: string;
+  chain?: string;
   transactionHash?: string;
   fromAddress?: string;
   toAddress?: string;
   proposalId?: string;
 }
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 25;
 
 // Static category list (defined outside component to avoid re-creation each render and dependency churn)
 const CATEGORIES = ['All', 'Whale Watch', 'Governance', 'Security', 'Market', 'DeFi', 'NFT', 'Staking', 'Airdrop'] as const;
@@ -236,6 +237,11 @@ export function NewsFetcher() {
                         <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200">
                           {item.category}
                         </span>
+                        {item.chain && (
+                          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200">
+                            {item.chain}
+                          </span>
+                        )}
                         <time className="text-xs text-neutral-500">
                           {new Date(item.date).toLocaleString()}
                         </time>

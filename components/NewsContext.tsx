@@ -8,6 +8,7 @@ interface NewsItem {
   author: string;
   date: string;
   category: string;
+  chain?: string;
   transactionHash?: string;
   fromAddress?: string;
   toAddress?: string;
@@ -102,9 +103,9 @@ export function NewsProvider({ children }: { children: ReactNode }) {
         }
 
         // Compose merged array and sort descending by date
-        let merged = Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        // Cap at 90 entries
-        if (merged.length > 90) merged = merged.slice(0, 90);
+  let merged = Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Cap at 300 entries
+  if (merged.length > 300) merged = merged.slice(0, 300);
 
         const hasChanges = currentItems.length !== merged.length ||
           currentItems.some((v, idx) => merged[idx]?.id !== v.id);
@@ -159,7 +160,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
               const map = new Map<string, NewsItem>();
               prev.forEach(i => map.set(i.id, i));
               parsed.forEach((i: NewsItem) => { if (!map.has(i.id)) map.set(i.id, i); });
-              const merged = Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 90);
+              const merged = Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 300);
               setLoadedFromCache(true);
               return merged;
             });
@@ -240,7 +241,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
             parsed.forEach((i: NewsItem) => map.set(i.id, i));
             // keep any in-memory that aren't in cache yet (shouldn't happen but safe)
             prev.forEach(i => { if (!map.has(i.id)) map.set(i.id, i); });
-            const merged = Array.from(map.values()).sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,90);
+            const merged = Array.from(map.values()).sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,300);
             return merged;
           });
           setLoadedFromCache(true);
