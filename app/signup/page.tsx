@@ -7,6 +7,7 @@ import { TextField } from '../../components/ui/TextField';
 export default function SignupPage() {
   const { signup } = useAuth();
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -41,7 +42,7 @@ export default function SignupPage() {
     }
 
     try {
-      await signup(email, password);
+      await signup(email, username, password);
     } catch (err: any) {
       setError(err.message || 'Failed to create account. Please try again.');
     }
@@ -56,6 +57,15 @@ export default function SignupPage() {
         </div>
       )}
       <form onSubmit={onSubmit} className="space-y-4">
+        <TextField
+          label="Username"
+          type="text"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          placeholder="Choose a username"
+          minLength={2}
+          required
+        />
         <TextField
           label="Email"
           type="email"

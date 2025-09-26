@@ -26,16 +26,18 @@ const defaultPrefs: UserPrefs = {
 
 interface StoredUser {
   email: string;
+  username?: string; // display / handle
   prefs?: UserPrefs;
   verified?: boolean; // email ownership confirmed
 }
 
 interface AuthContextValue {
   user: StoredUser | null;
-  signup: (email: string, password: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, username: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>; // identifier can be email or username
   logout: () => void;
   updatePreferences: (prefs: UserPrefs) => void;
+  updateUsername: (username: string) => void;
   monitoredAddresses: string[];
   addMonitoredAddress: (addr: string) => void;
   removeMonitoredAddress: (addr: string) => void;
@@ -92,30 +94,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const signup = async (email: string, password: string) => {
-    // Basic signup without email verification; store user immediately
-    const newUser: StoredUser = { email, prefs: defaultPrefs, verified: true };
+  const signup = async (email: string, username: string, password: string) => {
+    const cleanUsername = username.trim() || email.split('@')[0];
+    const newUser: StoredUser = { email, username: cleanUsername, prefs: defaultPrefs, verified: true };
     localStorage.setItem('authUser', JSON.stringify(newUser));
     setUser(newUser);
     router.push('/');
   };
 
-  const login = async (email: string, password: string) => {
-    let existingRaw = localStorage.getItem('authUser');
-    let prefs: UserPrefs = defaultPrefs;
-    if (existingRaw) {
+  const login = async (identifier: string, password: string) => {
+    const stored = localStorage.getItem('authUser');
+    if (stored) {
       try {
-        const existing: StoredUser = JSON.parse(existingRaw);
-        if (existing.email === email && existing.prefs) {
-          prefs = { ...defaultPrefs, ...existing.prefs };
-          localStorage.setItem('authUser', JSON.stringify({ ...existing, prefs }));
-          setUser({ ...existing, prefs });
-          router.push('/');
-          return;
+        const existing: StoredUser = JSON.parse(stored);
+        if (existing.email === identifier || existing.username === identifier) {
+          // Ensure prefs merged with defaults
+            const prefs = { ...defaultPrefs, ...existing.prefs };
+            const merged = { ...existing, prefs };
+            localStorage.setItem('authUser', JSON.stringify(merged));
+            setUser(merged);
+            router.push('/');
+            return;
         }
-      } catch { /* ignore parse error */ }
+      } catch { /* ignore */ }
     }
-    const newUser: StoredUser = { email, prefs, verified: true };
+    // If user not found, create a new one with identifier treated as email
+    const emailCandidate = identifier.includes('@') ? identifier : `${identifier}@example.local`; // fallback synthetic email
+    const newUser: StoredUser = { email: emailCandidate, username: identifier.includes('@') ? identifier.split('@')[0] : identifier, prefs: defaultPrefs, verified: true };
     localStorage.setItem('authUser', JSON.stringify(newUser));
     setUser(newUser);
     router.push('/');
@@ -134,6 +139,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updatePreferences = (prefs: UserPrefs) => {
     if (!user) return;
     const updated: StoredUser = { ...user, prefs };
+    setUser(updated);
+    localStorage.setItem('authUser', JSON.stringify(updated));
+  };
+
+  const updateUsername = (username: string) => {
+    if (!user) return;
+    const clean = username.trim();
+    if (!clean) return;
+    const updated: StoredUser = { ...user, username: clean };
     setUser(updated);
     localStorage.setItem('authUser', JSON.stringify(updated));
   };
@@ -166,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, signup, login, logout, updatePreferences, monitoredAddresses, addMonitoredAddress, removeMonitoredAddress, clearMonitoredAddresses, monitoredOnly, setMonitoredOnly: setMonitoredOnlyWrapped }}>
+    <AuthContext.Provider value={{ user, signup, login, logout, updatePreferences, updateUsername, monitoredAddresses, addMonitoredAddress, removeMonitoredAddress, clearMonitoredAddresses, monitoredOnly, setMonitoredOnly: setMonitoredOnlyWrapped }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../components/AuthContext';
 
 interface Review {
   id: string;
@@ -17,7 +18,8 @@ interface ReviewsResponse {
 }
 
 export default function ReviewPage() {
-  const [name, setName] = useState('');
+  const { user } = useAuth();
+  const derivedName = user?.email ? user.email.split('@')[0] : '';
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -58,7 +60,7 @@ export default function ReviewPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: name.trim(),
+          name: derivedName.trim(),
           rating,
           comment: comment.trim(),
         }),
@@ -68,7 +70,6 @@ export default function ReviewPage() {
 
       if (response.ok) {
         setSubmitted(true);
-        setName('');
         setRating(5);
         setComment('');
         // Refresh reviews list
@@ -103,18 +104,17 @@ export default function ReviewPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-1">Your Name</label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input w-full"
-              placeholder="John Doe"
-              required
-            />
-          </div>
+          {derivedName ? (
+            <div className="text-sm text-neutral-400 bg-neutral-800/40 border border-neutral-700 rounded px-3 py-2 flex items-center gap-2">
+              <span className="text-neutral-300">Posting as</span>
+              <span className="font-semibold text-indigo-400">{derivedName}</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">Verified</span>
+            </div>
+          ) : (
+            <div className="text-xs text-amber-500 bg-amber-900/20 border border-amber-600/30 px-3 py-2 rounded">
+              You are not logged in. Login to post as a verified user.
+            </div>
+          )}
           <div>
             <label htmlFor="rating" className="block text-sm font-medium mb-1">Rating</label>
             <div className="flex gap-2 mb-4">
@@ -146,7 +146,7 @@ export default function ReviewPage() {
           </div>
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || !derivedName}
             className="btn-primary w-full py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Submitting...' : 'Submit Review'}

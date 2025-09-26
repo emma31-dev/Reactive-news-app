@@ -6,22 +6,19 @@ import { TextField } from '../../components/ui/TextField';
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const looksLikeEmail = (val: string) => /@/.test(val);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     // Validation
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email address');
+    if (!identifier.trim()) {
+      setError('Please enter a username or email');
       return;
     }
 
@@ -31,7 +28,7 @@ export default function LoginPage() {
     }
 
     try {
-      await login(email, password);
+      await login(identifier.trim(), password);
     } catch (err: any) {
       setError(err.message || 'Invalid credentials.');
     }
@@ -47,11 +44,11 @@ export default function LoginPage() {
       )}
       <form onSubmit={onSubmit} className="space-y-4">
         <TextField
-          label="Email"
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="Enter your email address"
+          label="Username or Email"
+          type="text"
+          value={identifier}
+          onChange={e => setIdentifier(e.target.value)}
+          placeholder="yourname or yourname@example.com"
           required
         />
         <TextField

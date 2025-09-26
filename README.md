@@ -10,22 +10,25 @@ Real-time on-chain event monitoring, category filtering, price tracking, and edu
 
 - Deterministic multi-chain event feed (Ethereum, Avalanche, Base, BNB Smart Chain, Arbitrum) generated every 10s
 - Aligned 10s client polling with optional pause/resume auto-refresh control + manual refresh
-- Sliding window capacity: 500 most recent events (soft buffer trimming just before overflow)
+- Sliding window capacity: 500 most recent events (soft trim before overflow)
 - Persistent cumulative total counter (never resets across sessions)
-- Smart category filtering: Whale Watch, Governance, Security, Market, DeFi, NFT, Staking, Airdrop
+- Lightweight category filter bar (all categories always selectable)
+- Per-chain global filter (selected on Profile page) + optional monitored address narrowing
+- Monitored Addresses system: add wallet addresses or tx hashes, highlight or show-only
+- Copy-to-clipboard icons (summary + detailed table) for tx hash / from / to / any field
 - Fresh-first fetching strategy with resilient local cache fallback
 - Optional optimistic cache bootstrap (`NEXT_PUBLIC_USE_OPTIMISTIC_CACHE=true`)
-- Save-for-later system with local persistence
+- Save-for-later system with local persistence & limit messaging
 - New item highlighting (temporary blue pulse indicator + brief Updated pill)
 - Pagination (25 events per page) with automatic bounds correction
-- Profile preferences & authentication mock (email/password) – verification flow planned
+- Simplified auth (basic local email/password mock) – email verification removed
 - Educational "Learn" section and detailed About page
-- Real-time style blockchain-ish metadata: tx hash, from/to, proposal ID, etc. (synthetic)
+- Real-time style blockchain metadata: tx hash, from/to, proposal ID, etc. (synthetic)
 - Glassmorphism UI + dark/light theme
 - Responsive layout (mobile → desktop)
 - Verification badge component stub (extensible for real chain proofs)
 
-## 🧠 Caching & Data Strategy & Preferences
+## 🧠 Caching & Data Strategy
 
 The app now uses a fresh-first approach:
 
@@ -46,23 +49,15 @@ The price bar now retains and displays the last successfully fetched price if al
 
 Context adds `offline`, `forceRefresh()`, and `clearCachedPrice()` for manual control. Cached key: `reactPrice:last` in `localStorage`.
 
-### Preference-Based Filtering
-Users can toggle which event categories they want to see from the Profile page. Disabled categories are hidden from the feed and their filter pills are disabled. If all categories are disabled, a guidance message appears on the home feed.
+### Category Filtering (Simplified)
+All categories are always available in the pill bar. The earlier per-user toggle preference system was removed to streamline UX.
 
-Default preferences for new accounts:
+### Monitored Address / Tx Hash Filtering
+From the Profile page you can add addresses or transaction hashes:
 
-| Category | Default | Rationale |
-|----------|---------|-----------|
-| Whale Watch | ✅ | High-signal large movements |
-| Governance | ✅ | Protocol direction & actions |
-| Security | ❌ | Opt-in (alerts can be noisy) |
-| Market | ❌ | Optional macro signals |
-| DeFi | ✅ | Core ecosystem activity |
-| NFT | ❌ | Optional vertical |
-| Staking | ❌ | Operational / validator specific |
-| Airdrop | ✅ | High user interest |
-
-Preferences are stored under `authUser` in `localStorage` and automatically migrated when new categories are introduced.
+- Highlighting: Matching events receive an accent border and emphasized value text.
+- "Show Only Monitored" toggle: Narrows the feed strictly to matching events.
+- Clipboard: Each monitored entry and each matching field in the feed has a copy icon.
 
 ### Optional Optimistic Cache
 If you want to immediately show cached events while fetching fresh data, add to `.env.local`:
@@ -192,12 +187,14 @@ UI shows a Stop / Resume button plus an Updated pill when new items arrive.
 - Integrate wallet auth + signatures
 - Persist cache in IndexedDB with expiry TTL
 - Add category count badges to filter buttons
+- Subscribe to monitored addresses via websockets
+- Enrich events with token metadata & decoding
 
 ## 🐛 Troubleshooting
 
 | Issue | Resolution |
 |-------|------------|
-| Only Whale Watch events show | Multi-chain deterministic generator produces balanced synthetic mix; if filtering hides others, adjust preferences. |
+| Only Whale Watch events show | Ensure you did not enable "Show Only Monitored" with a narrow set. Otherwise wait for next 10s batch. |
 | Data appears stale | Click Refresh, or call `clearCache()` then refresh. |
 | Build fails with unescaped quotes | Escape `'` as `&apos;` and `"` as `&quot;` in JSX text. |
 

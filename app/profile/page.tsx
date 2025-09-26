@@ -214,11 +214,31 @@ function WalletSection() {
 }
 
 function ProfileContent() {
-  const { user } = useAuth();
+  const { user, updateUsername } = useAuth();
   const { savedNews, unsaveNews, getSavedNewsCount } = useSavedNews();
-  const mockName = user?.email?.split('@')[0] || 'User';
+  const derivedName = user?.username || user?.email?.split('@')[0] || 'User';
   const [avatar, setAvatar] = React.useState<string | null>(null);
   const [showAllSaved, setShowAllSaved] = React.useState(false);
+  const [editingUsername, setEditingUsername] = React.useState(false);
+  const [usernameInput, setUsernameInput] = React.useState(derivedName);
+  const [usernameStatus, setUsernameStatus] = React.useState<'idle' | 'saved'>('idle');
+
+  // Sync input if user changes (e.g., after login/logout)
+  React.useEffect(() => {
+    setUsernameInput(derivedName);
+  }, [derivedName]);
+
+  const handleSaveUsername = () => {
+    const trimmed = usernameInput.trim();
+    if (!trimmed || trimmed === derivedName) {
+      setEditingUsername(false);
+      return;
+    }
+    updateUsername(trimmed);
+    setEditingUsername(false);
+    setUsernameStatus('saved');
+    setTimeout(() => setUsernameStatus('idle'), 2000);
+  };
 
   const onAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -236,12 +256,46 @@ function ProfileContent() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatar} alt="Avatar" className="object-cover w-full h-full" />
           ) : (
-            mockName.charAt(0).toUpperCase()
+            derivedName.charAt(0).toUpperCase()
           )}
         </div>
         <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold tracking-tight">{mockName}</h2>
+          <div className="flex items-center flex-wrap gap-3">
+            {!editingUsername && (
+              <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+                {derivedName}
+                <button
+                  onClick={() => { setEditingUsername(true); setUsernameInput(derivedName); }}
+                  className="ml-1 text-xs px-2 py-1 rounded bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-200 transition"
+                  title="Edit username"
+                >
+                  Edit
+                </button>
+                {usernameStatus === 'saved' && (
+                  <span className="text-[10px] font-medium text-green-600 dark:text-green-400">Saved</span>
+                )}
+              </h2>
+            )}
+            {editingUsername && (
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  className="px-2 py-1 text-sm rounded border border-neutral-300 dark:border-neutral-700 bg-white/70 dark:bg-neutral-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  maxLength={32}
+                  placeholder="New username"
+                  autoFocus
+                />
+                <button
+                  onClick={handleSaveUsername}
+                  className="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                >Save</button>
+                <button
+                  onClick={() => { setEditingUsername(false); setUsernameInput(derivedName); }}
+                  className="text-xs px-2 py-1 rounded bg-neutral-300 dark:bg-neutral-700 hover:bg-neutral-400 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-100 transition"
+                >Cancel</button>
+              </div>
+            )}
             <span className="inline-block px-2 py-1 text-[10px] font-semibold !text-white bg-indigo-600 rounded-full">Basic Plan</span>
           </div>
           <p className="text-xs text-neutral-500">{user?.email}</p>

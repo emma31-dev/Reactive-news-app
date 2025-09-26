@@ -21,9 +21,9 @@ export default function AboutPage() {
   <li><strong>Educational Hub:</strong> Comprehensive &quot;Learn&quot; page with detailed <span className="!text-blue-600 dark:!text-blue-400">Reactive</span> Network documentation and glassmorphism design</li>
   <li><strong>Smart Filtering:</strong> Advanced category filtering (Whale Watch, Governance, Security, Market, DeFi, NFT, Staking, Airdrop)</li>
         <li><strong>Save for Later:</strong> Bookmark important events for easy access in your profile</li>
-        <li><strong>User Authentication:</strong> Secure login with email validation and strong password requirements</li>
+  <li><strong>User Authentication:</strong> Lightweight local mock (email verification removed for simplicity)</li>
         <li><strong>Review System:</strong> Rate and review the platform, view community feedback</li>
-        <li><strong>Personalized Dashboard:</strong> Customizable preferences for tailored monitoring experience</li>
+  <li><strong>Personalized Dashboard:</strong> Global chain filter + monitored address / tx hash controls</li>
         <li><strong>Modern UI Design:</strong> Premium glassmorphism effects with backdrop blur and translucent elements</li>
         <li><strong>Responsive Design:</strong> Seamless experience across desktop, tablet, and mobile devices</li>
         <li><strong>Intelligent Caching:</strong> Lightning-fast load times with smart local storage</li>
@@ -70,8 +70,8 @@ export default function AboutPage() {
           <p className="text-sm text-neutral-300">Rate your experience and read reviews from other users. Help improve the platform with your feedback.</p>
         </div>
         <div className="bg-neutral-900/20 rounded-lg p-4 border border-neutral-800">
-          <h3 className="text-lg font-semibold text-indigo-400 mb-2">🔒 Secure Authentication</h3>
-          <p className="text-sm text-neutral-300">Protected user accounts with email validation and strong password requirements for maximum security.</p>
+          <h3 className="text-lg font-semibold text-indigo-400 mb-2">👁️ Monitored Addresses</h3>
+          <p className="text-sm text-neutral-300">Add wallet addresses or transaction hashes, highlight matching events, or toggle a &quot;show only monitored&quot; mode for focused analysis.</p>
         </div>
         <div className="bg-neutral-900/20 rounded-lg p-4 border border-neutral-800">
           <h3 className="text-lg font-semibold text-indigo-400 mb-2">⚡ Live Updates</h3>
