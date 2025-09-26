@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { sendVerificationEmail, getEmailTransportInfo } from '@/lib/email';
 
 // In-memory store (per server instance) for demo purposes only.
 // For production: replace with Redis / database with TTL + rate limiting.
@@ -28,17 +29,34 @@ export async function POST(req: Request) {
     const last = lastRequestAt.get(email) || 0;
     if (now - last < RATE_LIMIT_WINDOW_MS) {
       const retryIn = Math.ceil((RATE_LIMIT_WINDOW_MS - (now - last)) / 1000);
-      return NextResponse.json({ error: `Please wait ${retryIn}s before requesting another code.` }, { status: 429 });
+      return NextResponse.json({ error: `Please wait ${retryIn}s before requesting another code.`, retryIn }, { status: 429 });
     }
 
     const code = generateCode();
     codes.set(email, { code, expiresAt: now + CODE_TTL_MS, attempts: 0 });
     lastRequestAt.set(email, now);
 
-    // In a real system we would send email here.
-    // For development, expose code so it can be displayed to user.
-    const dev = process.env.NODE_ENV !== 'production';
-    return NextResponse.json({ success: true, email, expiresIn: CODE_TTL_MS / 1000, ...(dev ? { devCode: code } : {}) });
+    // Attempt to send email if SMTP configured; fall back silently if not.
+    let sendResult = await sendVerificationEmail(email, code);
+    const includeDevCode = process.env.NODE_ENV !== 'production';
+    const transportInfo = includeDevCode ? getEmailTransportInfo() : undefined;
+    let verifyOk: boolean | undefined; let verifyError: string | undefined;
+    if (includeDevCode && transportInfo?.mode === 'smtp' && (transportInfo as any).transporter) {
+      try {
+        await (transportInfo as any).transporter.verify();
+        verifyOk = true;
+      } catch (err: any) {
+        verifyOk = false;
+        verifyError = err?.message || 'verify failed';
+      }
+    }
+    return NextResponse.json({
+      success: true,
+      email,
+      expiresIn: CODE_TTL_MS / 1000,
+      sent: sendResult.ok,
+      ...(includeDevCode ? { devCode: code, transport: transportInfo?.mode, verifyOk, verifyError, sendError: sendResult.error, previewUrl: sendResult.previewUrl, from: sendResult.from, fallbackMock: sendResult.fallbackMock } : {})
+    });
   } catch (e) {
     console.error('[request-code] error', e);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

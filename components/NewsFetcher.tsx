@@ -1,24 +1,11 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import { dotSpinner } from 'ldrs';
 import { useSavedNews } from './SavedNewsContext';
 import { useNews } from './NewsContext';
 import { VerificationBadge } from './VerificationBadge';
 import { useAuth } from './AuthContext';
 
-// Register element if not already
-if (typeof window !== 'undefined' && !customElements.get('l-dot-spinner')) {
-  dotSpinner.register();
-}
-
-declare global {
-  namespace JSX {
-    // If already declared elsewhere, skip
-    interface IntrinsicElements {
-      'l-dot-spinner': { size?: string | number; color?: string | number; speed?: string | number };
-    }
-  }
-}
+// Removed external ldrs loader; using lightweight inline CSS dots
 
 interface NewsItem {
   id: string;
@@ -32,6 +19,11 @@ interface NewsItem {
   fromAddress?: string;
   toAddress?: string;
   proposalId?: string;
+  verbose?: string;
+  eventType?: string;
+  blockHeight?: number;
+  gasUsed?: number;
+  reactValue?: number;
 }
 
 const ITEMS_PER_PAGE = 25;
@@ -193,9 +185,13 @@ export function NewsFetcher() {
 
       {/* Loading State */}
       {loading && (
-        <div className="flex justify-center items-center py-8">
-          <l-dot-spinner size="32" speed="0.9" color="#4f46e5"></l-dot-spinner>
-          <span className="ml-3 text-sm text-neutral-500">Fetching latest events...</span>
+        <div className="flex flex-col items-center justify-center py-8 gap-3">
+          <div className="flex items-center gap-1" aria-label="Loading">
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.2s]"></span>
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.1s]"></span>
+            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce"></span>
+          </div>
+          <span className="text-sm text-neutral-500">Fetching latest events...</span>
         </div>
       )}
 
@@ -272,6 +268,59 @@ export function NewsFetcher() {
                       <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                         {item.content}
                       </p>
+
+                      <details className="group mb-3 rounded-md bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700 px-3 py-2">
+                        <summary className="cursor-pointer select-none text-xs font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1">
+                          <span className="transition group-open:rotate-90 inline-block">▶</span>
+                          Detailed Event Context
+                        </summary>
+                        <div className="mt-2 space-y-3">
+                          {item.verbose && (
+                            <div className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400 whitespace-pre-line">
+                              {item.verbose}
+                            </div>
+                          )}
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[11px] border-separate border-spacing-y-1">
+                              <tbody className="align-top">
+                                {[
+                                  ['Event Type', item.eventType],
+                                  ['Category', item.category],
+                                  ['Chain', item.chain],
+                                  ['Block Height', item.blockHeight?.toString()],
+                                  ['Gas Used', item.gasUsed?.toString()],
+                                  ['Value (REACT)', item.reactValue?.toLocaleString()],
+                                  ['Transaction Hash', item.transactionHash],
+                                  ['From Address', item.fromAddress],
+                                  ['To Address', item.toAddress],
+                                  ['Proposal ID', item.proposalId],
+                                  ['ISO Timestamp', item.date],
+                                  ['Local Time', new Date(item.date).toLocaleString()],
+                                  ['ID', item.id],
+                                ].filter(([,v]) => v !== undefined && v !== null && v !== '')
+                                  .map(([label, value]) => (
+                                    <tr key={label} className="group/row">
+                                      <td className="py-1 pr-3 font-medium text-neutral-600 dark:text-neutral-300 whitespace-nowrap">{label}</td>
+                                      <td className="py-1 text-neutral-700 dark:text-neutral-200 break-all">
+                                        <div className="flex items-start gap-2">
+                                          <span className="select-text">{value as string}</span>
+                                          <button
+                                            onClick={() => {
+                                              try { navigator.clipboard.writeText(String(value)); } catch {}
+                                            }}
+                                            className="opacity-0 group-hover/row:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-300 dark:hover:bg-neutral-600"
+                                            title="Copy value"
+                                            type="button"
+                                          >Copy</button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </details>
                       
                       {/* Blockchain Verification Badge */}
                       <div className="mb-3">

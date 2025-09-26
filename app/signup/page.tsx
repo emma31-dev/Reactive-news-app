@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../components/AuthContext';
 import Link from 'next/link';
+import { TextField } from '../../components/ui/TextField';
 
 export default function SignupPage() {
   const { signup, requestEmailCode, verifyEmailCode, emailVerification } = useAuth();
@@ -86,10 +87,14 @@ export default function SignupPage() {
       )}
       {step === 1 && (
         <form onSubmit={onRequestCode} className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1">Email</label>
-            <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email address" required />
-          </div>
+          <TextField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="Enter your email address"
+            required
+          />
           <button className="btn-primary w-full rounded-sm" type="submit" disabled={emailVerification.status === 'requesting'}>
             {emailVerification.status === 'requesting' ? 'Sending Code…' : 'Send Verification Code'}
           </button>
@@ -97,29 +102,79 @@ export default function SignupPage() {
       )}
       {step === 2 && (
         <form onSubmit={onVerifyCode} className="space-y-4">
-          <div className="text-xs text-neutral-500">A 6‑digit code was sent to <strong>{email}</strong>. Enter it below. {emailVerification.devCode && (<span className="text-emerald-600 ml-1">(Dev Code: {emailVerification.devCode})</span>)} </div>
-          <div>
-            <label className="block text-sm mb-1">Verification Code</label>
-            <input className="input tracking-widest text-center" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/[^0-9]/g,''))} placeholder="••••••" required />
+          <div className="text-xs text-neutral-500">
+            A 6‑digit code was {emailVerification.sent ? 'sent' : 'generated'} for <strong>{email}</strong>. Enter it below.
+            {emailVerification.devCode && (
+              <span className="text-emerald-600 ml-1">(Dev Code: {emailVerification.devCode})</span>
+            )}
+            {emailVerification.transport && (
+              <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200">
+                mode: {emailVerification.transport}
+              </span>
+            )}
           </div>
-          <div className="flex gap-2">
+          <TextField
+            label="Verification Code"
+            maxLength={6}
+            value={code}
+            onChange={e => setCode(e.target.value.replace(/[^0-9]/g,''))}
+            placeholder="••••••"
+            required
+            inputClassName="tracking-widest text-center"
+          />
+          <div className="flex gap-2 items-start">
             <button className="btn-primary flex-1 rounded-sm" type="submit" disabled={emailVerification.status === 'verifying'}>
               {emailVerification.status === 'verifying' ? 'Verifying…' : 'Verify Code'}
             </button>
-            <button type="button" onClick={() => requestEmailCode(email)} className="px-3 py-2 text-xs rounded-sm border bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700">Resend</button>
+            <button
+              type="button"
+              onClick={() => requestEmailCode(email)}
+              disabled={emailVerification.status === 'requesting' || emailVerification.status === 'cooldown'}
+              className="px-3 py-2 text-xs rounded-sm border bg-neutral-100 dark:bg-neutral-800 disabled:opacity-50 hover:bg-neutral-200 dark:hover:bg-neutral-700 disabled:cursor-not-allowed"
+            >
+              {emailVerification.status === 'requesting' ? 'Sending…' : emailVerification.status === 'cooldown' && emailVerification.cooldownUntil ? `Wait ${Math.max(0, Math.ceil((emailVerification.cooldownUntil - Date.now())/1000))}s` : 'Resend'}
+            </button>
           </div>
+          {emailVerification.status === 'cooldown' && emailVerification.cooldownUntil && (
+            <p className="text-[10px] text-amber-600 dark:text-amber-400">{emailVerification.error} You can request a new code once the timer reaches 0.</p>
+          )}
+          {emailVerification.transport === 'disabled' && (
+            <p className="text-[10px] text-red-500">Email transport disabled: no SMTP credentials configured.</p>
+          )}
+          {emailVerification.transport === 'error' && (
+            <p className="text-[10px] text-red-500">Email sending error logged on server. Check server logs.</p>
+          )}
+          {emailVerification.sendError && (
+            <p className="text-[10px] text-red-500">Send Error: {emailVerification.sendError}</p>
+          )}
+          {emailVerification.previewUrl && (
+            <p className="text-[10px] text-emerald-500">Preview: <a className="underline" href={emailVerification.previewUrl} target="_blank" rel="noreferrer">open</a></p>
+          )}
+          {emailVerification.fallbackMock && (
+            <p className="text-[10px] text-indigo-500">Mock Delivery Active (ETIMEDOUT fallback)</p>
+          )}
         </form>
       )}
       {step === 3 && (
         <form onSubmit={onSubmitPassword} className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1">Password</label>
-            <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters with letters and numbers" minLength={8} required />
-          </div>
-            <div>
-            <label className="block text-sm mb-1">Confirm Password</label>
-            <input className="input" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirm your password" minLength={8} required />
-          </div>
+          <TextField
+            label="Password"
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="At least 8 characters with letters and numbers"
+            minLength={8}
+            required
+          />
+          <TextField
+            label="Confirm Password"
+            type="password"
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            placeholder="Confirm your password"
+            minLength={8}
+            required
+          />
           <button className="btn-primary w-full rounded-sm" type="submit">Create Account</button>
         </form>
       )}

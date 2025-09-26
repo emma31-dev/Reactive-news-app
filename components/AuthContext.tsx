@@ -40,10 +40,16 @@ interface AuthContextValue {
   verifyEmailCode: (email: string, code: string) => Promise<boolean>;
   emailVerification: {
     requestedFor: string | null;
-    status: 'idle' | 'requesting' | 'requested' | 'verifying' | 'verified' | 'error';
+    status: 'idle' | 'requesting' | 'requested' | 'verifying' | 'verified' | 'error' | 'cooldown';
     error?: string | null;
     expiresAt?: number | null;
     devCode?: string | null; // exposed only in dev
+    sent?: boolean | null; // whether an email was actually dispatched
+    cooldownUntil?: number | null; // timestamp when rate limit resets
+    transport?: string | null; // diagnostic transport mode
+    sendError?: string | null; // diagnostic send error
+    previewUrl?: string | null; // ethereal preview URL (dev only)
+    fallbackMock?: boolean | null; // whether mock fallback was used
   };
 }
 
@@ -57,6 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: null,
     expiresAt: null,
     devCode: null,
+    sent: null,
+    cooldownUntil: null,
+    transport: null,
+    sendError: null,
+    previewUrl: null,
+    fallbackMock: null,
   });
   const router = useRouter();
 
@@ -91,19 +103,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signup = async (email: string, password: string) => {
-    // Require verification first – if not verified, block and auto-request code
+    // Enforce that the email has been verified in the current session BEFORE allowing account creation
+    // The verification flow sets emailVerification.status === 'verified' once the user enters a valid code.
+    if (!(emailVerification.status === 'verified' && emailVerification.requestedFor === email)) {
+      // Auto-request a code if none requested yet to guide the user
+      if (!emailVerification.requestedFor) {
+        await requestEmailCode(email);
+      }
+      throw new Error('Please verify your email before creating the account');
+    }
+
+    // Prevent overwriting a different user's data accidentally
     const existingRaw = localStorage.getItem('authUser');
     if (existingRaw) {
       try {
         const existing: StoredUser = JSON.parse(existingRaw);
-        if (existing.email === email && existing.verified !== true) {
-          throw new Error('Email not verified');
+        if (existing.email !== email) {
+          // Different provisional user -> replace
+          localStorage.removeItem('authUser');
         }
-      } catch { /* ignore */ }
+      } catch { /* ignore parse error */ }
     }
-    const mockUser: StoredUser = { email, prefs: defaultPrefs, verified: true };
-    localStorage.setItem('authUser', JSON.stringify(mockUser));
-    setUser(mockUser);
+
+    // At this stage we have a verified email. (Password handling is mock only – not persisted.)
+    const newUser: StoredUser = { email, prefs: defaultPrefs, verified: true };
+    localStorage.setItem('authUser', JSON.stringify(newUser));
+    setUser(newUser);
     router.push('/');
   };
 
@@ -159,8 +184,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch('/api/auth/request-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed requesting code');
-      setEmailVerification({ requestedFor: email, status: 'requested', error: null, expiresAt: Date.now() + (data.expiresIn * 1000), devCode: data.devCode || null });
+      if (!res.ok) {
+        if (res.status === 429 && typeof data.retryIn === 'number') {
+          const until = Date.now() + data.retryIn * 1000;
+            setEmailVerification(v => ({
+              ...v,
+              requestedFor: email,
+              status: 'cooldown',
+              error: data.error || 'Rate limited',
+              cooldownUntil: until,
+              transport: data.transport || v.transport || null,
+            }));
+          return;
+        }
+        throw new Error(data.error || 'Failed requesting code');
+      }
+      setEmailVerification({
+        requestedFor: email,
+        status: 'requested',
+        error: null,
+        expiresAt: Date.now() + (data.expiresIn * 1000),
+        devCode: data.devCode || null,
+        sent: Boolean(data.sent),
+        cooldownUntil: null,
+        transport: data.transport || null,
+        sendError: data.sendError || null,
+        previewUrl: data.previewUrl || null,
+        fallbackMock: data.fallbackMock || null,
+      });
       return { devCode: data.devCode };
     } catch (e: any) {
       setEmailVerification(v => ({ ...v, status: 'error', error: e.message }));
@@ -178,6 +229,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const updated: StoredUser = { ...user, verified: true };
         setUser(updated);
         localStorage.setItem('authUser', JSON.stringify(updated));
+        // If user was verifying during login flow, redirect home
+        router.push('/');
       }
       setEmailVerification(v => ({ ...v, status: 'verified', error: null }));
       return true;

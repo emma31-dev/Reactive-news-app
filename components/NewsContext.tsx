@@ -13,6 +13,11 @@ interface NewsItem {
   fromAddress?: string;
   toAddress?: string;
   proposalId?: string;
+  verbose?: string; // Rich descriptive context
+  eventType?: string;
+  blockHeight?: number;
+  gasUsed?: number;
+  reactValue?: number;
 }
 
 interface NewsContextType {

@@ -29,6 +29,7 @@ const SavedNewsContext = createContext<SavedNewsContextType | undefined>(undefin
 export function SavedNewsProvider({ children }: { children: React.ReactNode }) {
   const [savedNews, setSavedNews] = useState<NewsItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const SAVE_LIMIT = 100; // Increased limit
 
   // Load saved news from localStorage on mount
   useEffect(() => {
@@ -66,9 +67,8 @@ export function SavedNewsProvider({ children }: { children: React.ReactNode }) {
         return prev;
       }
       
-      // Set saved items limit to 50 for all users
-      // In a real app, this could be adjusted based on user subscription status
-      const maxSavedItems = 50;
+  // Set saved items limit (could be tiered in future)
+  const maxSavedItems = SAVE_LIMIT;
       
       // Check if adding would exceed the limit
       if (prev.length >= maxSavedItems) {
@@ -94,9 +94,7 @@ export function SavedNewsProvider({ children }: { children: React.ReactNode }) {
     return savedNews.length;
   };
 
-  const getSaveLimit = () => {
-    return 50; // Maximum 50 saved items for all users
-  };
+  const getSaveLimit = () => SAVE_LIMIT;
 
   const canSaveMore = () => {
     return savedNews.length < getSaveLimit();
