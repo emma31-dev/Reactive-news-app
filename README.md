@@ -6,18 +6,21 @@ Real-time on-chain event monitoring, category filtering, price tracking, and edu
 
 </div>
 
-##  Core Features
+##  Core Features (Current)
 
-- Live event feed (simulated backend) updating every 15s with 30s polling on the client
+- Deterministic multi-chain event feed (Ethereum, Avalanche, Base, BNB Smart Chain, Arbitrum) generated every 10s
+- Aligned 10s client polling with optional pause/resume auto-refresh control + manual refresh
+- Sliding window capacity: 500 most recent events (soft buffer trimming just before overflow)
+- Persistent cumulative total counter (never resets across sessions)
 - Smart category filtering: Whale Watch, Governance, Security, Market, DeFi, NFT, Staking, Airdrop
 - Fresh-first fetching strategy with resilient local cache fallback
 - Optional optimistic cache bootstrap (`NEXT_PUBLIC_USE_OPTIMISTIC_CACHE=true`)
 - Save-for-later system with local persistence
-- New item highlighting (temporary blue pulse indicator)
-- Pagination (15 events per page) with automatic bounds correction
-- Profile preferences & authentication mock (email/password)
+- New item highlighting (temporary blue pulse indicator + brief Updated pill)
+- Pagination (25 events per page) with automatic bounds correction
+- Profile preferences & authentication mock (email/password) – verification flow planned
 - Educational "Learn" section and detailed About page
-- Real-time (mock) blockchain event attributes: tx hash, from/to, proposal ID, etc.
+- Real-time style blockchain-ish metadata: tx hash, from/to, proposal ID, etc. (synthetic)
 - Glassmorphism UI + dark/light theme
 - Responsive layout (mobile → desktop)
 - Verification badge component stub (extensible for real chain proofs)
@@ -28,7 +31,7 @@ The app now uses a fresh-first approach:
 
 1. On mount, it attempts a live fetch from `/api/news`.
 2. If the network request fails AND there is no current data, it falls back to `localStorage` (`newsCache`).
-3. New items are merged at the top; old items are trimmed to keep a max of ~90.
+3. New items are merged at the top; old items are trimmed to keep a max of 500 (soft buffer keeps us typically at 495 until next batch).
 4. New event IDs are tracked in a `Set` to show a temporary "new" visual marker.
 5. A success state briefly flashes an "Updated" pill when new events arrive.
 
@@ -151,15 +154,36 @@ Common Issues:
 | `public/` | Static assets |
 | `contracts/` | Solidity contract stubs |
 
-## 🧪 Mock Data Generation
+## 🧪 Mock Data Generation (Deterministic, Stateless)
 
-`/api/news` produces randomized events with categories and metadata. IDs are sequential (zero-padded) and kept in-memory only for the lifetime of the server process.
+`/api/news` now derives the feed purely from wall-clock time – no in-memory timers to break in serverless / cold start environments. Each 10‑second interval since a fixed anchor timestamp yields a deterministic set of synthetic events (one per supported chain). The server reconstructs the most recent intervals on demand and returns at most the latest 500 events (multi-chain expansion drastically increases freshness versus single-source generation).
 
-## 🔄 Polling & Updates
+ID Strategy:
+- Each interval has an index (monotonically increasing since anchor)
+- Each chain event inside that interval is composed into a unique ID (e.g. `<interval>-<chainKey>`)
+- This guarantees stability (same request within the same interval returns identical IDs) and continuity (no resets after deployments).
 
-- Server generates a new event every 15 seconds.
-- Client polls every 30 seconds.
-- New events merged at top, old trimmed.
+Benefits:
+- Consistent behavior across serverless cold starts (no duplication or regression)
+- Easy to reason about upper bounds (500 window) and cadence (10s)
+- Enables client polling alignment and pause/resume without race conditions
+
+## 🔄 Polling & Updates (Aligned 10s Cadence)
+
+- Server conceptually "generates" (derives) a new multi-chain batch every 10 seconds
+- Client polls every 10 seconds (aligned) while auto-refresh is enabled
+- Auto-refresh can be paused (stops network calls) and resumed via UI toggle
+- Manual Refresh button triggers an immediate fetch regardless of auto state
+- New events merged at top; oldest trimmed to maintain 500 window
+- Cumulative total increments even when items fall out of the window
+
+### Auto-Refresh Control
+`NewsContext` exposes:
+- `autoRefresh` (boolean)
+- `pauseAutoRefresh()` / `resumeAutoRefresh()`
+- `refreshNews()` (manual on-demand fetch)
+
+UI shows a Stop / Resume button plus an Updated pill when new items arrive.
 
 ## 🧩 Extensibility Ideas
 
@@ -173,7 +197,7 @@ Common Issues:
 
 | Issue | Resolution |
 |-------|------------|
-| Only Whale Watch events show | Wait for generator to produce other categories; they are random. |
+| Only Whale Watch events show | Multi-chain deterministic generator produces balanced synthetic mix; if filtering hides others, adjust preferences. |
 | Data appears stale | Click Refresh, or call `clearCache()` then refresh. |
 | Build fails with unescaped quotes | Escape `'` as `&apos;` and `"` as `&quot;` in JSX text. |
 

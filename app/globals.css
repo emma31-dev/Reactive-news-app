@@ -151,24 +151,42 @@ a:active {
 .float-blur-sm { backdrop-filter: blur(4px) saturate(140%); -webkit-backdrop-filter: blur(4px) saturate(140%); }
 .float-blur-lg { backdrop-filter: blur(14px) saturate(180%); -webkit-backdrop-filter: blur(14px) saturate(180%); }
 
-/* Floating background animations */
+/* Floating background animations (enhanced for subtle continuous motion) */
 @keyframes floatA {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-35px); }
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  25% { transform: translate3d(6px,-18px,0) scale(1.015); }
+  50% { transform: translate3d(-4px,-35px,0) scale(1.03); }
+  75% { transform: translate3d(-2px,-14px,0) scale(1.012); }
 }
 @keyframes floatB {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-45px) rotate(8deg); }
+  0%, 100% { transform: translate3d(0,0,0) rotate(0deg) scale(1); }
+  20% { transform: translate3d(-10px,-22px,0) rotate(3deg) scale(1.01); }
+  50% { transform: translate3d(4px,-45px,0) rotate(8deg) scale(1.028); }
+  80% { transform: translate3d(8px,-20px,0) rotate(4deg) scale(1.015); }
 }
 @keyframes floatC {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-30px); }
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(3px,-30px,0) scale(1.02); }
+}
+/* Micro jitter / noise wobble layered animation for more organic feel */
+@keyframes floatNoise {
+  0%, 100% { transform: translate3d(0,0,0); }
+  25% { transform: translate3d(1px,-2px,0); }
+  50% { transform: translate3d(-1px,1px,0); }
+  75% { transform: translate3d(2px,0,0); }
 }
 
 /* White emphasis utility for floats in dark mode */
 .float-white { filter: brightness(1.15) contrast(1.1) saturate(1.05); }
 .dark .float-white { filter: brightness(2.2) contrast(1.15) saturate(1.1); }
 
-.animate-float-slow { animation: floatA 11s ease-in-out infinite; }
-.animate-float-medium { animation: floatB 7s ease-in-out infinite; }
-.animate-float-fast { animation: floatC 9s ease-in-out infinite; }
+.animate-float-slow { animation: floatA 14s ease-in-out infinite, floatNoise 5.5s linear infinite alternate; }
+.animate-float-medium { animation: floatB 10s ease-in-out infinite, floatNoise 4.5s linear infinite alternate; }
+.animate-float-fast { animation: floatC 8.5s ease-in-out infinite, floatNoise 3.8s linear infinite alternate; }
+
+/* Reduced motion respect (override layered animations) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-float-medium,
+  .animate-float-fast { animation: none !important; }
+}

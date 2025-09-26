@@ -16,10 +16,10 @@ export default function AboutPage() {
 
       <h2 className="text-2xl font-semibold mb-3">Key Features</h2>
       <ul className="list-disc list-inside mb-4 space-y-2">
-        <li><strong>Live Event Monitoring:</strong> Real-time on-chain event detection with 15-second generation intervals</li>
+  <li><strong>Live Event Monitoring:</strong> Deterministic multi-chain (Ethereum, Avalanche, Base, BNB Smart Chain, Arbitrum) synthetic events every 10 seconds</li>
         <li><strong>REACT Price Ticker:</strong> Live cryptocurrency price tracking with real-time updates from Bybit, Binance, and CoinGecko APIs</li>
   <li><strong>Educational Hub:</strong> Comprehensive &quot;Learn&quot; page with detailed <span className="!text-blue-600 dark:!text-blue-400">Reactive</span> Network documentation and glassmorphism design</li>
-        <li><strong>Smart Filtering:</strong> Advanced category filtering (Whale Watch, Governance, Security, Market)</li>
+  <li><strong>Smart Filtering:</strong> Advanced category filtering (Whale Watch, Governance, Security, Market, DeFi, NFT, Staking, Airdrop)</li>
         <li><strong>Save for Later:</strong> Bookmark important events for easy access in your profile</li>
         <li><strong>User Authentication:</strong> Secure login with email validation and strong password requirements</li>
         <li><strong>Review System:</strong> Rate and review the platform, view community feedback</li>
@@ -29,7 +29,8 @@ export default function AboutPage() {
         <li><strong>Intelligent Caching:</strong> Lightning-fast load times with smart local storage</li>
         <li><strong>Fresh-First Data Fetch:</strong> Always attempts live data first, falling back to cache only on network failure</li>
         <li><strong>Optional Optimistic Cache:</strong> Environment flag to instantly display cached events while refreshing</li>
-        <li><strong>Pagination System:</strong> Organized viewing with 15 items per page</li>
+  <li><strong>Pagination System:</strong> Organized viewing with 25 items per page (sliding 500 event window)</li>
+  <li><strong>Auto-Refresh Control:</strong> Pause/resume 10s polling + manual refresh for bandwidth or focused reading</li>
         <li><strong>Dark/Light Theme:</strong> Beautiful interface with automatic theme switching</li>
         <li><strong>Data Strategy:</strong> Fresh-first fetching with selective cache fallback and new-item indicators</li>
       </ul>
@@ -39,7 +40,11 @@ export default function AboutPage() {
         <li><strong>Whale Watch:</strong> Large token transfers, liquidity events, and high-value transactions</li>
         <li><strong>Governance:</strong> Proposal creation, voting events, and protocol governance activities</li>
         <li><strong>Security:</strong> Smart contract upgrades, security incidents, and access control changes</li>
-        <li><strong>Market:</strong> Price oracle updates, arbitrage opportunities, and DeFi protocol interactions</li>
+        <li><strong>Market:</strong> Price oracle updates, arbitrage opportunities, and macro trading signals</li>
+        <li><strong>DeFi:</strong> Protocol upgrades, TVL shifts, liquidity mining, and yield events</li>
+        <li><strong>NFT:</strong> Collection mints, floor price movements, rarity sales, and whale sweeps</li>
+        <li><strong>Staking:</strong> Validator activity, reward distributions, unbonding, and slashing alerts</li>
+        <li><strong>Airdrop:</strong> Snapshot notices, claim window openings, surges, and unclaimed reminders</li>
       </ul>
 
       <h2 className="text-2xl font-semibold mb-3">Advanced Features</h2>
@@ -70,7 +75,7 @@ export default function AboutPage() {
         </div>
         <div className="bg-neutral-900/20 rounded-lg p-4 border border-neutral-800">
           <h3 className="text-lg font-semibold text-indigo-400 mb-2">⚡ Live Updates</h3>
-          <p className="text-sm text-neutral-300">Real-time event generation every 15 seconds with 30-second polling and smart merge (new items injected, old trimmed).</p>
+          <p className="text-sm text-neutral-300">Deterministic stateless multi-chain batches every 10s with aligned 10s client polling, 500-event sliding window, and pause/resume control.</p>
         </div>
         <div className="bg-neutral-900/20 rounded-lg p-4 border border-neutral-800">
           <h3 className="text-lg font-semibold text-indigo-400 mb-2">🌐 Multi-API Integration</h3>
@@ -128,8 +133,15 @@ export default function AboutPage() {
       <p className="mb-4">
         With my little experience in React, Nextjs and tailwind, I enjoy bringing ideas to life through code. This project was an opportunity to build an application that breaches my two key interests, crypto trading and web development.
       </p>
-      <p>
-        You can connect with me on <a href="[Your LinkedIn/GitHub/Portfolio URL]" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">LinkedIn, GitHub, or my portfolio</a>.
+      <p className="space-x-2 text-sm">
+        <span>Connect with me:</span>
+        <a href="https://wa.me/2349125913571" target="_blank" rel="noopener noreferrer" className="text-green-600 dark:text-green-400 hover:underline">WhatsApp</a>
+        <span className="text-neutral-400">|</span>
+        <a href="https://github.com/emma31-dev" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">GitHub</a>
+        <span className="text-neutral-400">|</span>
+        <a href="https://twitter.com/emmafidel31" target="_blank" rel="noopener noreferrer" className="text-sky-600 dark:text-sky-400 hover:underline">Twitter</a>
+        <span className="text-neutral-400">|</span>
+        <a href="https://portfolio-73mw.vercel.app" target="_blank" rel="noopener noreferrer" className="text-pink-600 dark:text-pink-400 hover:underline">Portfolio</a>
       </p>
     </div>
   );
