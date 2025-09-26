@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 
-// In-memory cache (per lambda instance). We generate items lazily per request based on elapsed time.
-let newsCache: any[] = [];
-let lastGenerationTime: number = Date.now();
+// Deterministic stateless generation configuration
+const MAX_ITEMS = 300; // Aligns with client cap
+const INTERVAL_MS = 5000; // 5s per interval per chain
+const ANCHOR_EPOCH = Date.UTC(2025, 0, 1, 0, 0, 0, 0); // Fixed start point (Jan 1 2025 UTC)
 
 // Supported chains for interoperability feature
 const CHAINS = [
@@ -86,20 +87,20 @@ const onChainEvents = {
   ]
 };
 
-function generateMockNewsItem(chain?: string) {
+function generateMockNewsItem(sequence: number, chain: string, timestamp: number) {
   const category = categories[Math.floor(Math.random() * categories.length)];
   const author = authors[Math.floor(Math.random() * authors.length)];
   const randomValue = Math.floor(Math.random() * 10000) + 100;
   const eventData = onChainEvents[category as keyof typeof onChainEvents][Math.floor(Math.random() * onChainEvents[category as keyof typeof onChainEvents].length)];
 
   return {
-    id: generateNewsId(),
+    id: `${sequence}-${chain.replace(/\s+/g,'_')}-${timestamp}`,
     title: `${eventData.event}: ${eventData.description}`,
     content: `Reactive Network detected ${eventData.event} with value ${randomValue.toLocaleString()} REACT. Block confirmation received from validator network.`,
     author: author,
-    date: new Date().toISOString(),
+    date: new Date(timestamp).toISOString(),
     category: category,
-    chain: chain || 'Reactive',
+    chain: chain,
     eventType: eventData.event,
     transactionHash: `0x${Math.random().toString(16).slice(2, 64)}`,
     fromAddress: `reactive1${Math.random().toString(16).slice(2, 38)}`,
@@ -110,46 +111,27 @@ function generateMockNewsItem(chain?: string) {
   };
 }
 
-// --- Live Monitor Simulation ---
-// We keep an incrementing counter; in serverless cold starts this will reset, so we also embed a timestamp
-let newsIdCounter = 1;
-
-// Function to generate 4-digit zero-padded ID
-function generateNewsId(): string {
-  // Include milliseconds to greatly reduce collision chance after cold start
-  const base = newsIdCounter.toString().padStart(4, '0');
-  const id = `${Date.now()}-${base}`;
-  newsIdCounter++;
-  return id;
-}
-
-// Seed initial cache with a few items (one per chain) only once per instance
-if (newsCache.length === 0) {
-  CHAINS.forEach(chain => {
-    newsCache.unshift(generateMockNewsItem(chain));
-  });
-}
-
 /**
- * Lazily generate new items based on elapsed time since last request.
- * For every 5s interval elapsed, generate one item PER CHAIN to reflect interoperability.
+ * Deterministically generate the most recent set of items based on time elapsed
+ * since a fixed anchor. We derive a stable interval sequence index so cold starts
+ * on serverless do not break continuity.
  */
-function generateElapsedItems() {
+function generateDeterministicItems(): any[] {
   const now = Date.now();
-  const elapsedMs = now - lastGenerationTime;
-  const INTERVAL = 5000; // 5 seconds
-  if (elapsedMs < INTERVAL) return; // less than one interval
-  const intervals = Math.floor(elapsedMs / INTERVAL);
-  for (let i = 0; i < intervals; i++) {
+  const intervalsSinceAnchor = Math.floor((now - ANCHOR_EPOCH) / INTERVAL_MS);
+  const itemsPerInterval = CHAINS.length;
+  const intervalsNeeded = Math.ceil(MAX_ITEMS / itemsPerInterval);
+  const startInterval = Math.max(0, intervalsSinceAnchor - intervalsNeeded + 1);
+  const items: any[] = [];
+  for (let seq = intervalsSinceAnchor; seq >= startInterval; seq--) {
+    const ts = ANCHOR_EPOCH + seq * INTERVAL_MS;
     for (const chain of CHAINS) {
-      newsCache.unshift(generateMockNewsItem(chain));
+      items.push(generateMockNewsItem(seq, chain, ts));
+      if (items.length >= MAX_ITEMS) break;
     }
+    if (items.length >= MAX_ITEMS) break;
   }
-  // Trim to 300 (keep newest)
-  if (newsCache.length > 300) {
-    newsCache = newsCache.slice(0, 300);
-  }
-  lastGenerationTime = now;
+  return items;
 }
 
 
@@ -159,10 +141,20 @@ function generateElapsedItems() {
  */
 export async function GET() {
   try {
-    // Generate any elapsed items (serverless-friendly)
-    generateElapsedItems();
-    // Return the data from the in-memory cache
-    return NextResponse.json(newsCache);
+    const items = generateDeterministicItems();
+    // Occasional log for visibility (5% sampling in production)
+    if (process.env.NODE_ENV !== 'production' || Math.random() < 0.05) {
+      console.log('[news-api] deterministic generation', {
+        count: items.length,
+        newest: items[0]?.id,
+        oldest: items[items.length - 1]?.id
+      });
+    }
+    const res = NextResponse.json(items);
+    res.headers.set('x-reactive-news-count', String(items.length));
+    if (items[0]) res.headers.set('x-reactive-news-newest', items[0].id);
+    if (items.length > 0) res.headers.set('x-reactive-news-oldest', items[items.length - 1].id);
+    return res;
   } catch (error) {
     console.error('Error reading news data:', error);
     return new NextResponse('Internal Server Error: Could not fetch news data.', { status: 500 });
