@@ -5,8 +5,12 @@ import { NextResponse } from 'next/server';
 interface CodeEntry { code: string; expiresAt: number; attempts: number; }
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute between requests per email
-const codes = new Map<string, CodeEntry>();
-const lastRequestAt = new Map<string, number>();
+// Use global maps so dev hot reload doesn't wipe pending codes between route hits
+const globalAny = globalThis as any;
+globalAny.__VERIFICATION_CODES__ = globalAny.__VERIFICATION_CODES__ || new Map<string, CodeEntry>();
+globalAny.__VERIFICATION_LAST_REQ__ = globalAny.__VERIFICATION_LAST_REQ__ || new Map<string, number>();
+const codes: Map<string, CodeEntry> = globalAny.__VERIFICATION_CODES__;
+const lastRequestAt: Map<string, number> = globalAny.__VERIFICATION_LAST_REQ__;
 
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
