@@ -35,6 +35,8 @@ interface NewsContextType {
   autoRefresh: boolean;
   pauseAutoRefresh: () => void;
   resumeAutoRefresh: () => void;
+  selectedChain: string | 'All';
+  setSelectedChain: (chain: string | 'All') => void;
 }
 
 const NewsContext = createContext<NewsContextType | undefined>(undefined);
@@ -57,6 +59,7 @@ export function NewsProvider({ children }: { children: ReactNode }) {
   });
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [selectedChain, setSelectedChain] = useState<string | 'All'>('All');
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchNewsRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -115,7 +118,6 @@ export function NewsProvider({ children }: { children: ReactNode }) {
   let merged = Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   // Cap at 500 entries
   if (merged.length > 500) merged = merged.slice(0, 500);
-
         const hasChanges = currentItems.length !== merged.length ||
           currentItems.some((v, idx) => merged[idx]?.id !== v.id);
 
@@ -307,7 +309,9 @@ export function NewsProvider({ children }: { children: ReactNode }) {
     cumulativeTotal,
     autoRefresh,
     pauseAutoRefresh,
-    resumeAutoRefresh
+    resumeAutoRefresh,
+    selectedChain,
+    setSelectedChain
   };
 
   return (

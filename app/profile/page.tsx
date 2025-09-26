@@ -5,6 +5,8 @@ import { useAuth } from '../../components/AuthContext';
 import { useSavedNews } from '../../components/SavedNewsContext';
 import { useWeb3 } from '../../components/Web3Context';
 import { Web3ConnectButton } from '../../components/VerificationBadge';
+import { ChainSelector } from '../../components/ChainSelector';
+import { AdvancedMonitor } from '../../components/AdvancedMonitor';
 import { WalletDiagnostics } from '../../components/WalletDiagnostics';
 
 export default function ProfilePage() {
@@ -212,22 +214,10 @@ function WalletSection() {
 }
 
 function ProfileContent() {
-  const { user, updatePreferences } = useAuth();
+  const { user } = useAuth();
   const { savedNews, unsaveNews, getSavedNewsCount } = useSavedNews();
   const mockName = user?.email?.split('@')[0] || 'User';
   const [avatar, setAvatar] = React.useState<string | null>(null);
-  const [prefs, setPrefs] = React.useState(() => user?.prefs || {
-    'Whale Watch': true,
-    'Governance': true,
-    'Security': false,
-    'Market': false,
-    'DeFi': true,
-    'NFT': false,
-    'Staking': false,
-    'Airdrop': true,
-  });
-  const [saving, setSaving] = React.useState(false);
-  const [savedAt, setSavedAt] = React.useState<number | null>(null);
   const [showAllSaved, setShowAllSaved] = React.useState(false);
 
   const onAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,20 +226,6 @@ function ProfileContent() {
     const reader = new FileReader();
     reader.onload = ev => setAvatar(ev.target?.result as string);
     reader.readAsDataURL(file);
-  };
-
-  const togglePref = (key: keyof typeof prefs) => {
-    setPrefs(p => ({ ...p, [key]: !p[key] }));
-  };
-
-  const onSave = () => {
-    setSaving(true);
-    // Simulate async save
-    setTimeout(() => {
-      updatePreferences(prefs);
-      setSaving(false);
-      setSavedAt(Date.now());
-    }, 400);
   };
 
   return (
@@ -276,53 +252,19 @@ function ProfileContent() {
         </div>
       </header>
 
-      <section className="space-y-3">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-500">Event Preferences</h3>
-        <p className="text-xs text-neutral-400 mb-4">Select which on-chain event types you want to monitor</p>
-        <div className="flex flex-wrap items-center gap-2">
-          {(
-            [
-              'Whale Watch',
-              'Governance',
-              'Security',
-              'Market',
-              'DeFi',
-              'NFT',
-              'Staking',
-              'Airdrop',
-            ] as (keyof typeof prefs)[]
-          ).map((key) => {
-            const val = prefs[key];
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => togglePref(key)}
-                className={`px-3 py-1 text-xs rounded-full transition ${
-                  val
-                    ? 'bg-indigo-600 text-white font-semibold'
-                    : 'bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-300'
-                }`}
-              >
-                {key}
-              </button>
-            );
-          })}
+      {/* Event preferences removed; chain filter now primary personalization tool */}
+      <section className="space-y-2">
+        <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-500">Chain Filter</h3>
+        <p className="text-xs text-neutral-400 mb-2">Select a blockchain to filter your feed across the app.</p>
+        <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
+          <ChainSelector showTitle={false} />
         </div>
-        <div className="flex items-center gap-3 pt-2">
-            {savedAt && !saving && (
-            <span className="text-[11px] text-emerald-500 mr-4">Saved {new Date(savedAt).toLocaleTimeString()}</span>
-          )}
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving}
-            className={`px-4 py-2 mt-10 ml-auto rounded text-xs font-medium transition border shadow-sm disabled:opacity-50 disabled:cursor-not-allowed
-              bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-500 active:bg-indigo-700`}
-          >
-            {saving ? 'Saving…' : 'Save Preferences'}
-          </button>
-          
+      </section>
+
+      {/* Advanced address / tx monitoring */}
+      <section className="space-y-2">
+        <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
+          <AdvancedMonitor />
         </div>
       </section>
 

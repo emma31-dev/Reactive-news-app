@@ -33,9 +33,9 @@ const CATEGORIES = ['All', 'Whale Watch', 'Governance', 'Security', 'Market', 'D
 
 export function NewsFetcher() {
   // Get news data from global context
-  const { items, loading, error, success, loadedFromCache, newItemIds, refreshNews, cumulativeTotal, autoRefresh, pauseAutoRefresh, resumeAutoRefresh } = useNews();
+  const { items, loading, error, success, loadedFromCache, newItemIds, refreshNews, cumulativeTotal, autoRefresh, pauseAutoRefresh, resumeAutoRefresh, selectedChain } = useNews();
   // Auth (for user category preferences)
-  const { user } = useAuth();
+  const { user, monitoredAddresses, monitoredOnly } = useAuth();
   
   // Local state for UI management
   const [currentPage, setCurrentPage] = useState(1);
@@ -44,35 +44,27 @@ export function NewsFetcher() {
   const { saveNews, unsaveNews, isNewsSaved, getSavedNewsCount, getSaveLimit, canSaveMore } = useSavedNews();
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Derive enabled categories from user preferences (if logged in)
-  const enabledCategorySet = useMemo(() => {
-    const prefs = user?.prefs;
-    if (!prefs) {
-      // No user or no prefs stored -> treat all as enabled
-      return new Set(CATEGORIES.filter(c => c !== 'All'));
-    }
-    const active = Object.entries(prefs)
-      .filter(([_, v]) => v)
-      .map(([k]) => k);
-    return new Set(active);
-  }, [user]);
+  // Preferences UI was removed; treat all categories as enabled
+  const preferenceFilteredItems = items;
 
-  // Apply preference filtering first (unless no prefs -> all)
-  const preferenceFilteredItems = useMemo(() => {
-    // If user has prefs object AND all are false, return empty array
-    if (user?.prefs) {
-      const anyEnabled = Object.values(user.prefs).some(v => v);
-      if (!anyEnabled) return [];
-    }
-    // If enabledCategorySet includes all categories (no prefs) just return items
-    return items.filter(i => enabledCategorySet.has(i.category));
-  }, [items, enabledCategorySet, user]);
+  // Apply chain filter (news-level) AFTER preference filtering
+  const chainFilteredItems = useMemo(() => {
+    if (!selectedChain || selectedChain === 'All') return preferenceFilteredItems;
+    return preferenceFilteredItems.filter(i => i.chain === selectedChain);
+  }, [preferenceFilteredItems, selectedChain]);
 
-  // Now apply manual UI filter
+  // Apply monitored-only filter (if enabled) then manual UI category filter
   const filteredItems = useMemo(() => {
-    if (filter === 'All') return preferenceFilteredItems;
-    return preferenceFilteredItems.filter(item => item.category === filter);
-  }, [preferenceFilteredItems, filter]);
+    let base = chainFilteredItems;
+    if (monitoredOnly && monitoredAddresses.length) {
+      base = base.filter(i => {
+        const hay = [i.fromAddress, i.toAddress, i.transactionHash].filter(Boolean) as string[];
+        return hay.some(val => monitoredAddresses.includes(val));
+      });
+    }
+    if (filter === 'All') return base;
+    return base.filter(item => item.category === filter);
+  }, [chainFilteredItems, filter, monitoredOnly, monitoredAddresses]);
   
   // Reset to page 1 when filter changes
   useEffect(() => {
@@ -125,9 +117,14 @@ export function NewsFetcher() {
       <div className="flex flex-wrap gap-4 text-sm">
         <div className="bg-blue-100 dark:bg-blue-900/20 px-3 py-1.5 rounded-full">
           <span className="font-medium text-blue-800 dark:text-blue-300">
-            {filteredItems.length} {filter === 'All' ? 'Visible' : filter} • {cumulativeTotal} Total
+            {filter === 'All' ? chainFilteredItems.length : filteredItems.length} {filter === 'All' ? 'Visible' : filter} • {cumulativeTotal} Total
           </span>
         </div>
+        {selectedChain && selectedChain !== 'All' && (
+          <div className="bg-purple-100 dark:bg-purple-900/20 px-3 py-1.5 rounded-full">
+            <span className="font-medium text-purple-800 dark:text-purple-300">Chain: {selectedChain}</span>
+          </div>
+        )}
         {getSavedNewsCount() > 0 && (
           <div className="bg-green-100 dark:bg-green-900/20 px-3 py-1.5 rounded-full">
             <span className="font-medium text-green-800 dark:text-green-300">
@@ -155,27 +152,16 @@ export function NewsFetcher() {
       <div className="flex items-center gap-2 flex-wrap">
         {CATEGORIES.map(category => {
           const isActive = filter === category;
-          const isAll = category === 'All';
-          const categoryEnabled = isAll || enabledCategorySet.has(category);
-          const disableButton = !categoryEnabled;
-          
           return (
             <button
               key={category}
-              onClick={() => !disableButton && setFilter(category)}
-              disabled={disableButton}
+              onClick={() => setFilter(category)}
               className={`px-3 py-1 text-xs rounded-full transition ${
                 isActive
                   ? '!bg-indigo-600 !text-white font-semibold border-2 border-indigo-600'
-                  : disableButton
-                    ? 'bg-slate-50 dark:bg-neutral-900 text-slate-400 dark:text-neutral-600 border-2 border-dashed border-slate-200 dark:border-neutral-700 cursor-not-allowed'
-                    : 'bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-300 border-2 border-transparent'
+                  : 'bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-300 border-2 border-transparent'
               }`}
-              style={isActive ? { 
-                backgroundColor: '#4f46e5 !important', 
-                color: 'white !important',
-                border: '2px solid #4f46e5 !important'
-              } : {}}
+              style={isActive ? { backgroundColor: '#4f46e5 !important', color: 'white !important', border: '2px solid #4f46e5 !important' } : {}}
             >
               {category}
             </button>
@@ -221,11 +207,6 @@ export function NewsFetcher() {
             <div className="text-center py-8 space-y-2">
               {items.length === 0 ? (
                 <p className="text-neutral-500 text-sm">No events available</p>
-              ) : user?.prefs && !Object.values(user.prefs).some(v => v) ? (
-                <>
-                  <p className="text-neutral-500 text-sm">No categories enabled in your profile.</p>
-                  <p className="text-neutral-400 text-xs">Enable categories on the Profile page to see events.</p>
-                </>
               ) : (
                 <p className="text-neutral-500 text-sm">No events in &quot;{filter}&quot; category</p>
               )}
@@ -235,18 +216,20 @@ export function NewsFetcher() {
               const isNewItem = newItemIds.has(item.id);
               const isSaved = isNewsSaved(item.id);
               
+              // Determine if this item matches monitored addresses for highlighting
+              const monitoredMatch = monitoredAddresses.length > 0 && [item.fromAddress, item.toAddress, item.transactionHash].filter(Boolean).some(val => monitoredAddresses.includes(val as string));
               return (
                 <article
                   key={item.id}
-                  className="bg-white/70 dark:bg-neutral-900/70 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 hover:shadow-md transition-shadow relative"
+                  className={`relative bg-white/70 dark:bg-neutral-900/70 rounded-lg border p-4 hover:shadow-md transition-shadow ${monitoredMatch ? 'border-emerald-400 dark:border-emerald-500 shadow-emerald-500/20' : 'border-neutral-200 dark:border-neutral-800'}`}
                 >
                   {/* New item indicator */}
                   {isNewItem && (
                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
                   )}
                   
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
+                  <div className="pr-10">
+                    {/* Main content */}
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200">
                           {item.category}
@@ -305,13 +288,17 @@ export function NewsFetcher() {
                                         <div className="flex items-start gap-2">
                                           <span className="select-text">{value as string}</span>
                                           <button
-                                            onClick={() => {
-                                              try { navigator.clipboard.writeText(String(value)); } catch {}
-                                            }}
-                                            className="opacity-0 group-hover/row:opacity-100 transition text-[10px] px-1 py-0.5 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-300 dark:hover:bg-neutral-600"
+                                            onClick={() => { try { navigator.clipboard.writeText(String(value)); } catch {} }}
+                                            className="opacity-0 group-hover/row:opacity-100 transition p-1 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-200 hover:bg-neutral-300 dark:hover:bg-neutral-600"
                                             title="Copy value"
+                                            aria-label="Copy value"
                                             type="button"
-                                          >Copy</button>
+                                          >
+                                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                              <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                                            </svg>
+                                          </button>
                                         </div>
                                       </td>
                                     </tr>
@@ -331,45 +318,81 @@ export function NewsFetcher() {
                         />
                       </div>
                       
-                      <div className="flex items-center justify-between text-xs text-neutral-500">
+                      <div className="mt-2 flex items-center justify-between text-xs text-neutral-500">
                         <span>By {item.author}</span>
                         {(item.transactionHash || item.fromAddress || item.proposalId) && (
-                          <div className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-1.5">
-                            {item.transactionHash && <span>Tx: {item.transactionHash}</span>}
-                            <span className="hidden sm:inline">|</span>
-                            {item.fromAddress && <span>From: {item.fromAddress}</span>}
-                            {item.proposalId && <span>Proposal: {item.proposalId}</span>}
+                          <div className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-1.5 text-right">
+                            {item.transactionHash && (
+                              <span className="flex items-center gap-1 group/address">
+                                <span className={monitoredAddresses.includes(item.transactionHash) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''}>Tx: {item.transactionHash}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => { try { navigator.clipboard.writeText(item.transactionHash!); } catch {} }}
+                                  className="p-1 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-200 hover:bg-neutral-300 dark:hover:bg-neutral-600 transition"
+                                  title="Copy transaction hash"
+                                  aria-label="Copy transaction hash"
+                                >
+                                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                                  </svg>
+                                </button>
+                              </span>
+                            )}
+                            {item.transactionHash && item.fromAddress && <span className="hidden sm:inline">|</span>}
+                            {item.fromAddress && (
+                              <span className="flex items-center gap-1 group/address">
+                                <span className={monitoredAddresses.includes(item.fromAddress) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''}>From: {item.fromAddress}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => { try { navigator.clipboard.writeText(item.fromAddress!); } catch {} }}
+                                  className="p-1 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-200 hover:bg-neutral-300 dark:hover:bg-neutral-600 transition"
+                                  title="Copy from address"
+                                  aria-label="Copy from address"
+                                >
+                                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                                  </svg>
+                                </button>
+                              </span>
+                            )}
+                            {item.proposalId && (
+                              <span className="flex items-center gap-1">
+                                <span>Proposal: {item.proposalId}</span>
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
-                    </div>
-                    
-                    {/* Save Button */}
-                    <button
-                      onClick={() => {
-                        try {
-                          setSaveError(null);
-                          if (isSaved) {
-                            unsaveNews(item.id);
-                          } else {
-                            saveNews(item);
-                          }
-                        } catch (error) {
-                          setSaveError(error instanceof Error ? error.message : 'Failed to save article');
-                        }
-                      }}
-                      className={`flex-shrink-0 p-2 rounded-full transition ${
-                        isSaved
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
-                          : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                      }`}
-                      title={isSaved ? 'Remove from saved' : 'Save for later'}
-                    >
-                      <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
-                    </button>
                   </div>
+
+                  {/* Save Button (absolute to avoid extra right padding impact) */}
+                  <button
+                    onClick={() => {
+                      try {
+                        setSaveError(null);
+                        if (isSaved) {
+                          unsaveNews(item.id);
+                        } else {
+                          saveNews(item);
+                        }
+                      } catch (error) {
+                        setSaveError(error instanceof Error ? error.message : 'Failed to save article');
+                      }
+                    }}
+                    className={`absolute top-3 right-3 p-2 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition ${
+                      isSaved
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                    }`}
+                    title={isSaved ? 'Remove from saved' : 'Save for later'}
+                    aria-label={isSaved ? 'Remove from saved' : 'Save for later'}
+                  >
+                    <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                  </button>
                 </article>
               );
             })
