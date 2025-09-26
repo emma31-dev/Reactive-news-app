@@ -103,71 +103,50 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const checkConnection = useCallback(async () => {
-    try {
-      if (!window.ethereum) return;
-      
-      const provider = new ethers.BrowserProvider(window.ethereum!);
-      const accounts = await provider.listAccounts();
-      
-      if (accounts.length > 0) {
-        await connectWallet(provider);
-      }
-    } catch (error) {
-      console.error('Error checking connection:', error);
-    }
-  }, []);
+  // Declare chain change handler first (no deps)
+  const handleChainChanged = useCallback(() => { window.location.reload(); }, []);
 
-  // Stable callbacks for event handlers
+  // Refs to keep stable identities without expanding dependency arrays
+  const disconnectRef = React.useRef<() => void>(() => {});
+  const connectWalletRef = React.useRef<(
+    web3Provider?: ethers.BrowserProvider
+  ) => Promise<void>>(async () => {});
+  const handleAccountsChangedRef = React.useRef<(accounts: string[]) => void>(() => {});
+
+  // Stable handler leveraging refs – no deps needed
   const handleAccountsChanged = useCallback((accounts: string[]) => {
     if (accounts.length === 0) {
-      disconnect();
-    } else {
-      // Reconnect with new account
-      checkConnection();
+      disconnectRef.current();
+      return;
     }
-  }, [checkConnection]);
-
-  const handleChainChanged = useCallback(() => {
-    window.location.reload();
-  }, []);
-
-  // Check for existing connection
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      checkConnection();
-    }
-  }, [checkConnection]);
-
-  const connectWallet = async (web3Provider?: ethers.BrowserProvider) => {
-    try {
-      console.log('⚙️ Setting up wallet connection...');
-      
-      if (!web3Provider) {
-        console.log('🔧 Creating new provider...');
-        web3Provider = new ethers.BrowserProvider(window.ethereum!);
+    if (!window.ethereum) return;
+    (async () => {
+      try {
+        const providerInstance = new ethers.BrowserProvider(window.ethereum!);
+        const list = await providerInstance.listAccounts();
+        if (list.length > 0) {
+          await connectWalletRef.current(providerInstance);
+        }
+      } catch (e) {
+        console.error('accountsChanged reconnect failed', e);
       }
-      
-      console.log('✍️ Getting signer...');
+    })();
+  }, []);
+  // Keep ref pointing to latest stable handler
+  handleAccountsChangedRef.current = handleAccountsChanged;
+
+  const connectWallet = useCallback(async (web3Provider?: ethers.BrowserProvider) => {
+    if (!window.ethereum && !web3Provider) throw new Error('MetaMask not installed');
+    try {
+      if (!web3Provider) web3Provider = new ethers.BrowserProvider(window.ethereum!);
       const signer = await web3Provider.getSigner();
-      
-      console.log('🏠 Getting address...');
       const address = await signer.getAddress();
-      
-      console.log('🌍 Getting network...');
       const network = await web3Provider.getNetwork();
-      
-      console.log(`📍 Connected to address: ${address}`);
-      console.log(`🌐 Network: ${network.name} (${network.chainId})`);
-      
       setProvider(web3Provider);
       setSigner(signer);
       setAccount(address);
-      const numericChain = Number(network.chainId);
-      setChainId(numericChain);
+      setChainId(Number(network.chainId));
       setConnected(true);
-      
-      // Initialize contract (if deployed)
       if (!configError && !isZeroAddress(CONTRACT_ADDRESS)) {
         try {
           const contract = new ethers.Contract(CONTRACT_ADDRESS, REACTIVE_NEWS_ABI, signer);
@@ -179,20 +158,42 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       } else {
         setNewsContract(null);
       }
-      
-      // Listen for account changes
       if (window.ethereum) {
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-        window.ethereum.on('chainChanged', handleChainChanged);
+        window.ethereum.on('accountsChanged', handleAccountsChangedRef.current as any);
+        window.ethereum.on('chainChanged', handleChainChanged as any);
       }
-      
     } catch (error) {
       console.error('Error connecting wallet:', error);
       throw error;
     }
-  };
+  }, [configError, handleChainChanged]);
 
-  const connect = async () => {
+  // Keep ref to latest connectWallet implementation
+  useEffect(() => { connectWalletRef.current = connectWallet; }, [connectWallet]);
+
+  const checkConnection = useCallback(async () => {
+    try {
+      if (!window.ethereum) return;
+      const provider = new ethers.BrowserProvider(window.ethereum!);
+      const accounts = await provider.listAccounts();
+      if (accounts.length > 0) {
+        await connectWallet(provider);
+      }
+    } catch (error) {
+      console.error('Error checking connection:', error);
+    }
+  }, [connectWallet]);
+
+  // Check for existing connection
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.ethereum) {
+      checkConnection();
+    }
+  }, [checkConnection]);
+
+  // (old non-memoized connectWallet removed; replaced by memoized version above)
+
+  const connect = useCallback(async () => {
     if (connecting) {
       console.log('🔄 Connection already in progress...');
       return;
@@ -210,10 +211,9 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       await window.ethereum!.request({ method: 'eth_requestAccounts' });
       
       console.log('🌐 Creating ethers provider...');
-      const provider = new ethers.BrowserProvider(window.ethereum!);
-      
-      console.log('🔗 Connecting wallet...');
-      await connectWallet(provider);
+  const providerInstance = new ethers.BrowserProvider(window.ethereum!);
+  console.log('🔗 Connecting wallet...');
+  await connectWallet(providerInstance);
       
       console.log('✅ Wallet connection complete!');
       
@@ -223,21 +223,23 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     } finally {
       setConnecting(false);
     }
-  };
+  }, [connecting, connectWallet]);
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
     setProvider(null);
     setSigner(null);
     setAccount(null);
     setChainId(null);
     setConnected(false);
     setNewsContract(null);
-    
     if (window.ethereum) {
-      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      window.ethereum.removeListener('chainChanged', handleChainChanged);
+      window.ethereum.removeListener('accountsChanged', handleAccountsChangedRef.current as any);
+      window.ethereum.removeListener('chainChanged', handleChainChanged as any);
     }
-  };
+  }, [handleChainChanged]);
+
+  // keep ref updated
+  useEffect(() => { disconnectRef.current = disconnect; }, [disconnect]);
 
   // (handlers moved above with useCallback)
 

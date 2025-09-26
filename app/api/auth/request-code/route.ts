@@ -45,5 +45,4 @@ export async function POST(req: Request) {
   }
 }
 
-// Utility for other modules (not imported client-side)
-export function _peekCode(email: string) { return codes.get(email); }
+// (Removed internal debug export to satisfy Next.js route type constraints)
