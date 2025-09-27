@@ -59,7 +59,7 @@ const tiers = [
 export default function PricingPage() {
   return (
     <div className="space-y-8">
-      <section className="text-center space-y-2">
+  <section className="text-center space-y-2 backdrop-blur-md">
         <h1 className="text-3xl font-bold tracking-tight"><span className="!text-blue-600 dark:!text-blue-400">Reactive</span> Network Monitoring Plans</h1>
         <p className="text-neutral-400">Choose the monitoring level that fits your on-chain needs.</p>
       </section>
@@ -68,7 +68,7 @@ export default function PricingPage() {
         {tiers.map((tier) => (
           <div
             key={tier.name}
-            className={`rounded-lg p-6 border max-w-sm mx-auto w-full ${
+            className={`rounded-lg p-6 border max-w-sm mx-auto w-full backdrop-blur-md ${
               tier.current
                 ? 'border-indigo-500 bg-indigo-900/10'
                 : 'border-neutral-800 bg-neutral-900/20'

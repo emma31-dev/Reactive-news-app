@@ -31,6 +31,10 @@ interface StoredUser {
   verified?: boolean; // email ownership confirmed
 }
 
+interface MonitoredMetaEntry {
+  auto?: boolean; // auto-save enabled for this entry
+}
+
 interface AuthContextValue {
   user: StoredUser | null;
   signup: (email: string, username: string, password: string) => Promise<void>;
@@ -44,6 +48,8 @@ interface AuthContextValue {
   clearMonitoredAddresses: () => void;
   monitoredOnly: boolean;
   setMonitoredOnly: (v: boolean) => void;
+  monitoredMeta: Record<string, MonitoredMetaEntry>;
+  toggleAddressAutoSave: (addr: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -52,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<StoredUser | null>(null);
   const [monitoredAddresses, setMonitoredAddresses] = useState<string[]>([]);
   const [monitoredOnly, setMonitoredOnly] = useState<boolean>(false);
+  const [monitoredMeta, setMonitoredMeta] = useState<Record<string, MonitoredMetaEntry>>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -91,8 +98,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const mo = localStorage.getItem('monitoredOnly');
         if (mo) setMonitoredOnly(mo === 'true');
       } catch {}
+      try {
+        const mm = localStorage.getItem('monitoredMeta');
+        if (mm) setMonitoredMeta(JSON.parse(mm));
+      } catch {}
     }
   }, []);
+
+  // Migration: ensure all monitored addresses & meta keys are lowercase (idempotent)
+  useEffect(() => {
+    if (monitoredAddresses.length === 0 && Object.keys(monitoredMeta).length === 0) return;
+    const anyUpper = monitoredAddresses.some(a => a !== a.toLowerCase());
+    const metaUpper = Object.keys(monitoredMeta).some(k => k !== k.toLowerCase());
+    if (!anyUpper && !metaUpper) return; // already normalized
+    const lowered = Array.from(new Set(monitoredAddresses.map(a => a.toLowerCase())));
+    const newMeta: Record<string, MonitoredMetaEntry> = {};
+    Object.entries(monitoredMeta).forEach(([k, v]) => { newMeta[k.toLowerCase()] = v; });
+    setMonitoredAddresses(lowered);
+    setMonitoredMeta(newMeta);
+    try {
+      localStorage.setItem('monitoredAddresses', JSON.stringify(lowered));
+      localStorage.setItem('monitoredMeta', JSON.stringify(newMeta));
+    } catch {}
+  }, [monitoredAddresses, monitoredMeta]);
 
   const signup = async (email: string, username: string, password: string) => {
     const cleanUsername = username.trim() || email.split('@')[0];
@@ -130,9 +158,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('authUser');
     localStorage.removeItem('monitoredAddresses');
     localStorage.removeItem('monitoredOnly');
+  localStorage.removeItem('monitoredMeta');
     setUser(null);
     setMonitoredAddresses([]);
     setMonitoredOnly(false);
+  setMonitoredMeta({});
     router.push('/login');
   };
 
@@ -154,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Monitored address management
   const addMonitoredAddress = (addr: string) => {
-    const norm = addr.trim();
+    const norm = addr.trim().toLowerCase();
     if (!norm) return;
     setMonitoredAddresses(prev => {
       if (prev.includes(norm)) return prev;
@@ -162,25 +192,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('monitoredAddresses', JSON.stringify(next));
       return next;
     });
+    setMonitoredMeta(prev => {
+      const next = { ...prev };
+      if (!next[norm]) next[norm] = { auto: false };
+      localStorage.setItem('monitoredMeta', JSON.stringify(next));
+      return next;
+    });
   };
   const removeMonitoredAddress = (addr: string) => {
+    const norm = addr.toLowerCase();
     setMonitoredAddresses(prev => {
-      const next = prev.filter(a => a !== addr);
+      const next = prev.filter(a => a !== norm);
       localStorage.setItem('monitoredAddresses', JSON.stringify(next));
+      return next;
+    });
+    setMonitoredMeta(prev => {
+      const next = { ...prev };
+      delete next[norm];
+      localStorage.setItem('monitoredMeta', JSON.stringify(next));
       return next;
     });
   };
   const clearMonitoredAddresses = () => {
     setMonitoredAddresses([]);
     localStorage.setItem('monitoredAddresses', JSON.stringify([]));
+    setMonitoredMeta({});
+    localStorage.setItem('monitoredMeta', JSON.stringify({}));
   };
   const setMonitoredOnlyWrapped = (v: boolean) => {
     setMonitoredOnly(v);
     localStorage.setItem('monitoredOnly', String(v));
   };
+  const toggleAddressAutoSave = (addr: string) => {
+    const norm = addr.toLowerCase();
+    setMonitoredMeta(prev => {
+      // Always create a new object and a new entry object
+      const next = { ...prev };
+      const prevEntry = prev[norm] || { auto: false };
+      // Create a new entry object to ensure state change is detected
+      const entry = { ...prevEntry, auto: !prevEntry.auto };
+      next[norm] = entry;
+      localStorage.setItem('monitoredMeta', JSON.stringify(next));
+      return next;
+    });
+  };
 
   return (
-    <AuthContext.Provider value={{ user, signup, login, logout, updatePreferences, updateUsername, monitoredAddresses, addMonitoredAddress, removeMonitoredAddress, clearMonitoredAddresses, monitoredOnly, setMonitoredOnly: setMonitoredOnlyWrapped }}>
+    <AuthContext.Provider value={{ user, signup, login, logout, updatePreferences, updateUsername, monitoredAddresses, addMonitoredAddress, removeMonitoredAddress, clearMonitoredAddresses, monitoredOnly, setMonitoredOnly: setMonitoredOnlyWrapped, monitoredMeta, toggleAddressAutoSave }}>
       {children}
     </AuthContext.Provider>
   );

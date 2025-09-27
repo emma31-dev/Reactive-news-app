@@ -1,6 +1,6 @@
 <div align="center">
 
-# Reactive News App
+# Reactive Events App
 
 Real-time on-chain event monitoring, category filtering, price tracking, and educational hub for the Reactive Network ecosystem.
 

@@ -36,7 +36,7 @@ export default function LoginPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Login</h2>
+  <h1 className="text-3xl font-bold tracking-tight">Login</h1>
       {error && (
         <div className="bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-3 rounded-md text-sm">
           {error}
@@ -60,7 +60,7 @@ export default function LoginPage() {
           minLength={8}
           required
         />
-        <button className="btn-primary w-full rounded-sm" type="submit">
+        <button className="btn btn-primary w-full" type="submit">
           Login
         </button>
       </form>

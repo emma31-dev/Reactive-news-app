@@ -24,7 +24,7 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  title: 'Reactive News - Live On-Chain Event Monitor',
+  title: 'Reactive Events - Live On-Chain Event Monitor',
   description: 'Real-time monitoring of Reactive Network blockchain events with live REACT token prices',
 };
 
@@ -51,12 +51,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="min-h-screen flex flex-col relative overflow-hidden">
             {/* Floating decorative SVGs (fixed to viewport) */}
             <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
-              <Image src="/float1.svg" alt="" width={192} height={192} className="float-blur float-white opacity-55 dark:opacity-40 animate-float-slow motion-reduce:animate-none absolute top-16 left-[6%] w-32 md:w-48 select-none" priority />
-              <Image src="/float2.svg" alt="" width={420} height={420} className="float-blur float-white opacity-65 dark:opacity-45 animate-float-medium motion-reduce:animate-none absolute bottom-28 -right-16 md:-right-28 w-64 md:w-[420px] select-none -rotate-12" />
-              <Image src="/float3.svg" alt="" width={256} height={256} className="float-blur float-white opacity-70 dark:opacity-55 animate-float-fast motion-reduce:animate-none absolute bottom-4 left-4 w-48 md:w-64 select-none" />
+              <Image src="/float1.svg" alt="" width={192} height={192} className="float-blur float-white opacity-35 dark:opacity-35 animate-float-slow motion-reduce:animate-none absolute top-16 left-[6%] w-32 md:w-48 select-none" priority />
+              <Image src="/float2.svg" alt="" width={420} height={420} className="float-blur float-white opacity-35 dark:opacity-35 animate-float-medium motion-reduce:animate-none absolute bottom-28 -right-16 md:-right-28 w-64 md:w-[420px] select-none -rotate-12" />
+              <Image src="/float3.svg" alt="" width={256} height={256} className="float-blur float-white opacity-35 dark:opacity-35 animate-float-fast motion-reduce:animate-none absolute bottom-4 left-4 w-48 md:w-64 select-none" />
             </div>
             {/* Content backdrop so floats show softly behind */}
-            <div className="flex-1 flex flex-col bg-white/75 dark:bg-black/70 backdrop-blur-sm supports-[backdrop-filter]:bg-white/55 dark:supports-[backdrop-filter]:bg-black/55 transition-colors">
+            <div className="flex-1 flex flex-col bg-transparent backdrop-blur-[2px] transition-colors">
               <main className="flex-1 container mx-auto px-4 py-4 pt-20 lg:px-8 xl:px-12 max-w-4xl xl:max-w-6xl w-full pb-20">
                 <PageTransition>
                   {children}

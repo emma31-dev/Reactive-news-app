@@ -86,32 +86,32 @@ export default function ReviewPage() {
   };
 
   return (
-    <div className="space-y-10">
+  <div className="space-y-10">
       <div>
         <h1 className="text-2xl font-bold mb-6">Leave a Review</h1>
         
         {submitted && (
-          <div className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 p-4 rounded-md mb-6">
+          <div className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 p-4 rounded-md mb-6 backdrop-blur-md">
             <h3 className="font-semibold">Thank you for your review!</h3>
             <p className="text-sm">Your feedback has been submitted successfully.</p>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-4 rounded-md mb-6">
+          <div className="bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-4 rounded-md mb-6 backdrop-blur-md">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {derivedName ? (
-            <div className="text-sm text-neutral-400 bg-neutral-800/40 border border-neutral-700 rounded px-3 py-2 flex items-center gap-2">
+            <div className="text-sm text-neutral-400 bg-neutral-800/40 border border-neutral-700 rounded px-3 py-2 flex items-center gap-2 backdrop-blur-md">
               <span className="text-neutral-300">Posting as</span>
               <span className="font-semibold text-indigo-400">{derivedName}</span>
               <span className="text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">Verified</span>
             </div>
           ) : (
-            <div className="text-xs text-amber-500 bg-amber-900/20 border border-amber-600/30 px-3 py-2 rounded">
+            <div className="text-xs text-amber-500 bg-amber-900/20 border border-amber-600/30 px-3 py-2 rounded backdrop-blur-md">
               You are not logged in. Login to post as a verified user.
             </div>
           )}
@@ -147,7 +147,7 @@ export default function ReviewPage() {
           <button 
             type="submit" 
             disabled={loading || !derivedName}
-            className="btn-primary w-full py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn btn-primary w-full"
           >
             {loading ? 'Submitting...' : 'Submit Review'}
           </button>
@@ -206,13 +206,13 @@ export default function ReviewPage() {
             <p className="text-neutral-400">Loading reviews...</p>
           </div>
         ) : reviews.length === 0 ? (
-          <div className="text-center py-8 bg-neutral-900/20 rounded-lg">
+          <div className="text-center py-8 bg-neutral-900/20 rounded-lg backdrop-blur-md">
             <p className="text-neutral-400">No reviews yet. Be the first to leave a review!</p>
           </div>
         ) : (
           <div className="space-y-6">
             {/* Reviews Stats */}
-            <div className="bg-neutral-900/20 rounded-lg p-4 mb-6">
+            <div className="bg-neutral-900/20 rounded-lg p-4 mb-6 backdrop-blur-md">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-neutral-400">Average Rating</p>

@@ -50,7 +50,7 @@ export default function SignupPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Sign Up</h2>
+      <h1 className="text-3xl font-bold tracking-tight">Sign Up</h1>
       {error && (
         <div className="bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-3 rounded-md text-sm">
           {error}
@@ -92,7 +92,7 @@ export default function SignupPage() {
           minLength={8}
           required
         />
-        <button className="btn-primary w-full rounded-sm" type="submit">Create Account</button>
+  <button className="btn btn-primary w-full" type="submit">Create Account</button>
       </form>
       <p className="text-sm text-neutral-400">Already have an account? <Link className="underline" href="/login">Log in</Link></p>
     </div>

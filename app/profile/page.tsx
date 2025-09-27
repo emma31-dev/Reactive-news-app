@@ -18,7 +18,7 @@ export default function ProfilePage() {
 }
 
 // Wallet section component
-function WalletSection() {
+function WalletSection({ hideHeader = false }: { hideHeader?: boolean }) {
   const { 
     connected, 
     account, 
@@ -52,12 +52,14 @@ function WalletSection() {
 
   return (
     <section className="space-y-4">
-      <div>
-        <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-500">Wallet & Blockchain</h3>
-        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-          Connect your wallet to interact with blockchain features and earn REACT tokens
-        </p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-500">Wallet & Blockchain</h3>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+            Connect your wallet to interact with blockchain features and earn REACT tokens
+          </p>
+        </div>
+      )}
 
       <div className="bg-white/80 dark:bg-neutral-900/30 rounded-lg p-6 border border-neutral-200 dark:border-neutral-800 backdrop-blur-sm shadow-sm">
         {!connected ? (
@@ -266,7 +268,7 @@ function ProfileContent() {
                 {derivedName}
                 <button
                   onClick={() => { setEditingUsername(true); setUsernameInput(derivedName); }}
-                  className="ml-1 text-xs px-2 py-1 rounded bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-200 transition"
+                  className="ml-1 text-xs px-2.5 py-1 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-200 transition shadow-sm"
                   title="Edit username"
                 >
                   Edit
@@ -306,126 +308,166 @@ function ProfileContent() {
         </div>
       </header>
 
-      {/* Event preferences removed; chain filter now primary personalization tool */}
-      <section className="space-y-2">
-        <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-500">Chain Filter</h3>
-        <p className="text-xs text-neutral-400 mb-2">Select a blockchain to filter your feed across the app.</p>
-        <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
-          <ChainSelector showTitle={false} />
-        </div>
-      </section>
-
-      {/* Advanced address / tx monitoring */}
-      <section className="space-y-2">
-        <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
-          <AdvancedMonitor />
-        </div>
-      </section>
-
-      {/* Wallet Section */}
-      <WalletSection />
-
-      {/* Saved News Section */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Chain filter section now fully boxed */}
+      <section>
+  <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 space-y-2 backdrop-blur-md">
           <div>
-            <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-500">Saved News</h3>
-            <p className="text-xs text-neutral-400 mt-1">
-              {getSavedNewsCount() > 0 
-                ? `${getSavedNewsCount()} saved article${getSavedNewsCount() !== 1 ? 's' : ''}`
-                : 'No saved articles yet. Save interesting news from the home feed!'
-              }
-            </p>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Chain Filter</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-500">Select a blockchain to filter your feed across the app.</p>
           </div>
-          {getSavedNewsCount() > 3 && (
-            <button
-              onClick={() => setShowAllSaved(!showAllSaved)}
-              className="text-xs text-indigo-500 hover:text-indigo-400 font-medium"
-            >
-              {showAllSaved ? 'Show less' : 'Show all'}
-            </button>
-          )}
+          <div className="pt-2">
+            <ChainSelector showTitle={false} />
+          </div>
         </div>
+      </section>
 
-        {getSavedNewsCount() === 0 ? (
-          <div className="bg-neutral-900/20 rounded-lg p-6 text-center border border-dashed border-neutral-700">
-            <div className="w-12 h-12 mx-auto mb-3 text-neutral-500">
-              <svg className="w-full h-full stroke-current" fill="none" viewBox="0 0 48 48">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 8a2 2 0 012-2h28a2 2 0 012 2v32a2 2 0 01-3.2 1.6L24 32l-12.8 9.6A2 2 0 018 40V8z"/>
-              </svg>
-            </div>
-            <p className="text-sm text-neutral-400">Start saving news articles for easy access later</p>
-            <p className="text-xs text-neutral-500 mt-1">Click the bookmark icon on any news item</p>
+      {/* Advanced address / tx monitoring boxed */}
+      <section>
+  <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 space-y-3 backdrop-blur-md">
+          <div>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Monitored Addresses / Tx Hashes</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-500">Add addresses or transaction hashes to highlight or optionally show only matching events.</p>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {(showAllSaved ? savedNews : savedNews.slice(0, 3)).map((item) => (
-              <div
-                key={item.id}
-                className="border border-neutral-800 rounded-md p-4 bg-neutral-900/20 backdrop-blur-xl hover:bg-neutral-800/30 transition"
+          <AdvancedMonitor hideHeader />
+        </div>
+      </section>
+
+      {/* Wallet Section boxed wrapper */}
+      <section>
+  <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 backdrop-blur-md">
+          <div className="mb-4">
+            <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Wallet & Blockchain</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">Connect your wallet to interact with blockchain features and earn REACT tokens.</p>
+          </div>
+          {/* Reuse the existing WalletSection content minus its outer section styling */}
+          <div>
+            <WalletSection hideHeader />
+          </div>
+        </div>
+      </section>
+
+      {/* Saved News Section boxed */}
+      <section>
+  <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Saved News</h3>
+              <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">
+                {getSavedNewsCount() > 0 
+                  ? `${getSavedNewsCount()} saved article${getSavedNewsCount() !== 1 ? 's' : ''}`
+                  : 'No saved articles yet. Save interesting news from the home feed!'}
+              </p>
+            </div>
+            {getSavedNewsCount() > 3 && (
+              <button
+                onClick={() => setShowAllSaved(!showAllSaved)}
+                className="text-xs text-indigo-500 hover:text-indigo-400 font-medium"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium text-indigo-300 leading-snug mb-2">{item.title}</h4>
-                    
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                          item.category === 'Whale Watch' ? 'bg-blue-900 text-blue-200' :
-                          item.category === 'Governance' ? 'bg-purple-900 text-purple-200' :
-                          item.category === 'Security' ? 'bg-red-900 text-red-200' :
-                          'bg-emerald-900 text-emerald-200'
-                        }`}
-                      >
+                {showAllSaved ? 'Show less' : 'Show all'}
+              </button>
+            )}
+          </div>
+          {getSavedNewsCount() === 0 ? (
+            <div className="bg-neutral-900/20 rounded-lg p-6 text-center border border-dashed border-neutral-700">
+              <div className="w-12 h-12 mx-auto mb-3 text-neutral-500">
+                <svg className="w-full h-full stroke-current" fill="none" viewBox="0 0 48 48">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 8a2 2 0 012-2h28a2 2 0 012 2v32a2 2 0 01-3.2 1.6L24 32l-12.8 9.6A2 2 0 018 40V8z"/>
+                </svg>
+              </div>
+              <p className="text-sm text-neutral-400">Start saving news articles for easy access later</p>
+              <p className="text-xs text-neutral-500 mt-1">Click the bookmark icon on any news item</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(showAllSaved ? savedNews : savedNews.slice(0, 3)).map((item) => (
+                <article
+                  key={item.id}
+                  className="relative bg-white/70 dark:bg-neutral-900/70 rounded-lg border p-4 hover:shadow-md transition-shadow border-neutral-200 dark:border-neutral-800 hover:border-indigo-400/60"
+                >
+                  {/* Unsave button */}
+                  <button
+                    onClick={() => unsaveNews(item.id)}
+                    className="absolute top-3 right-3 p-2 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-red-100 dark:hover:bg-red-900/40 hover:text-red-600 dark:hover:text-red-400"
+                    title="Remove from saved"
+                    aria-label="Remove from saved"
+                    type="button"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v14.5l-7-3.5-7 3.5V5z" />
+                    </svg>
+                  </button>
+
+                  <div className="pr-10">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200">
                         {item.category}
                       </span>
-                      <span className="text-xs text-neutral-500">by {item.author}</span>
+                      <time className="text-xs text-neutral-500">
+                        {new Date(item.date).toLocaleString()}
+                      </time>
+                      <span className="text-[10px] text-neutral-400">by {item.author}</span>
                     </div>
+                    <h4 className="font-medium text-neutral-900 dark:text-neutral-100 mb-2 leading-snug">
+                      {item.title}
+                    </h4>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3 line-clamp-2">
+                      {item.content}
+                    </p>
 
-                    <p className="text-sm text-neutral-400 mb-2 line-clamp-2">{item.content}</p>
-                    
-                    <div className="text-[10px] text-neutral-500">
+                    <details className="group mb-3 rounded-md bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700 px-3 py-2">
+                      <summary className="cursor-pointer select-none text-xs font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-1">
+                        <span className="transition group-open:rotate-90 inline-block">▶</span>
+                        More Details
+                      </summary>
+                      <div className="mt-2 space-y-2 text-[11px] text-neutral-600 dark:text-neutral-400 font-mono break-all">
+                        {[['ID', item.id], ['Category', item.category], ['Author', item.author], ['ISO Timestamp', item.date], ['Local Time', new Date(item.date).toLocaleString()], ['Tx Hash', item.transactionHash], ['From', item.fromAddress], ['To', item.toAddress], ['Proposal', item.proposalId]]
+                          .filter(([,v]) => v)
+                          .map(([label, value]) => (
+                            <div key={label} className="flex items-start gap-2 group/item">
+                              <span className="w-24 shrink-0 text-neutral-500 dark:text-neutral-400 font-semibold">{label}:</span>
+                              <span className="flex-1 select-text">{value as string}</span>
+                              <button
+                                onClick={() => { try { navigator.clipboard.writeText(String(value)); } catch {} }}
+                                className="opacity-0 group-hover/item:opacity-100 transition p-1 rounded bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-200 hover:bg-neutral-300 dark:hover:bg-neutral-600"
+                                title="Copy value"
+                                aria-label="Copy value"
+                                type="button"
+                              >
+                                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                  <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    </details>
+
+                    {(item.transactionHash || item.fromAddress || item.toAddress || item.proposalId) && (
+                      <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-700 text-[11px] text-neutral-500 dark:text-neutral-400 space-y-1 font-mono">
+                        {item.transactionHash && <p><strong className="font-semibold text-neutral-600 dark:text-neutral-300">Tx:</strong> {item.transactionHash}</p>}
+                        {item.fromAddress && <p><strong className="font-semibold text-neutral-600 dark:text-neutral-300">From:</strong> {item.fromAddress}</p>}
+                        {item.toAddress && <p><strong className="font-semibold text-neutral-600 dark:text-neutral-300">To:</strong> {item.toAddress}</p>}
+                        {item.proposalId && <p><strong className="font-semibold text-neutral-600 dark:text-neutral-300">Proposal:</strong> {item.proposalId}</p>}
+                      </div>
+                    )}
+
+                    <div className="mt-3 text-[10px] text-neutral-500 dark:text-neutral-500">
                       Saved on {new Date(item.date).toLocaleDateString()} at {new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
-                  
-                  <button
-                    onClick={() => unsaveNews(item.id)}
-                    className="p-1.5 rounded-full text-yellow-400 hover:text-red-400 hover:bg-red-900/20 transition-colors"
-                    title="Remove from saved"
-                  >
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                      <path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v14a1 1 0 01-1.6.8L10 14.4l-5.4 3.4A1 1 0 013 17V3z"/>
-                    </svg>
-                  </button>
+                </article>
+              ))}
+              {!showAllSaved && getSavedNewsCount() > 3 && (
+                <div className="text-center pt-2">
+                  <p className="text-xs text-neutral-500">
+                    {getSavedNewsCount() - 3} more saved article{getSavedNewsCount() - 3 !== 1 ? 's' : ''}
+                  </p>
                 </div>
-
-                {/* Additional details for specific categories */}
-                {item.category === 'Whale Watch' && item.transactionHash && (
-                  <div className="mt-3 pt-3 border-t border-neutral-800 text-xs text-neutral-500 space-y-1 font-mono">
-                    <p><strong>Tx Hash:</strong> {item.transactionHash}</p>
-                    {item.fromAddress && <p><strong>From:</strong> {item.fromAddress}</p>}
-                    {item.toAddress && <p><strong>To:</strong> {item.toAddress}</p>}
-                  </div>
-                )}
-
-                {item.category === 'Governance' && item.proposalId && (
-                  <div className="mt-3 pt-3 border-t border-neutral-800 text-xs text-neutral-500 space-y-1 font-mono">
-                    <p><strong>Proposal ID:</strong> {item.proposalId}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {!showAllSaved && getSavedNewsCount() > 3 && (
-              <div className="text-center pt-2">
-                <p className="text-xs text-neutral-500">
-                  {getSavedNewsCount() - 3} more saved article{getSavedNewsCount() - 3 !== 1 ? 's' : ''}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );

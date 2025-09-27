@@ -35,7 +35,7 @@ export function NewsFetcher() {
   // Get news data from global context
   const { items, loading, error, success, loadedFromCache, newItemIds, refreshNews, cumulativeTotal, autoRefresh, pauseAutoRefresh, resumeAutoRefresh, selectedChain } = useNews();
   // Auth (for user category preferences)
-  const { user, monitoredAddresses, monitoredOnly } = useAuth();
+  const { user, monitoredAddresses, monitoredOnly, monitoredMeta } = useAuth();
   
   // Local state for UI management
   const [currentPage, setCurrentPage] = useState(1);
@@ -88,6 +88,21 @@ export function NewsFetcher() {
     const slicedItems = filteredItems.slice(startIndex, endIndex);
     return slicedItems;
   }, [filteredItems, currentPage]);
+
+  // Auto-save monitored matching items (scan full dataset so filtering/pagination doesn't hide matches)
+  useEffect(() => {
+    if (monitoredAddresses.length === 0) return;
+    if (!items || items.length === 0) return;
+    try {
+      items.forEach(item => {
+        if (isNewsSaved(item.id)) return;
+        const hay = [item.fromAddress, item.toAddress, item.transactionHash].filter(Boolean) as string[];
+        if (hay.some(v => monitoredMeta[v]?.auto)) {
+          try { saveNews(item); } catch { /* swallow */ }
+        }
+      });
+    } catch { /* swallow */ }
+  }, [monitoredAddresses, monitoredMeta, items, saveNews, isNewsSaved]);
 
   const goToNextPage = () => setCurrentPage((page) => Math.min(page + 1, totalPages));
   const goToPrevPage = () => setCurrentPage((page) => Math.max(page - 1, 1));
@@ -217,12 +232,24 @@ export function NewsFetcher() {
               const isSaved = isNewsSaved(item.id);
               
               // Determine if this item matches monitored addresses for highlighting
-              const monitoredMatch = monitoredAddresses.length > 0 && [item.fromAddress, item.toAddress, item.transactionHash].filter(Boolean).some(val => monitoredAddresses.includes(val as string));
+              const relatedValues = [item.fromAddress, item.toAddress, item.transactionHash].filter(Boolean) as string[];
+              const monitoredMatch = monitoredAddresses.length > 0 && relatedValues.some(val => monitoredAddresses.includes(val));
+              const autoMatch = relatedValues.some(v => monitoredMeta[v]?.auto);
               return (
                 <article
                   key={item.id}
-                  className={`relative bg-white/70 dark:bg-neutral-900/70 rounded-lg border p-4 hover:shadow-md transition-shadow ${monitoredMatch ? 'border-emerald-400 dark:border-emerald-500 shadow-emerald-500/20' : 'border-neutral-200 dark:border-neutral-800'}`}
+                  className={`relative bg-white/70 dark:bg-neutral-900/70 rounded-lg border p-4 hover:shadow-md transition-shadow ${monitoredMatch ? (autoMatch ? 'border-emerald-500 dark:border-emerald-400 shadow-emerald-500/30' : 'border-emerald-400 dark:border-emerald-500 shadow-emerald-500/20') : 'border-neutral-200 dark:border-neutral-800'}`}
                 >
+                  {autoMatch && (
+                    <div className="absolute -left-2 top-4">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-500 text-white shadow">
+                        <svg viewBox="0 0 20 20" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 10l3 3 7-7" />
+                        </svg>
+                        Auto-Saved
+                      </span>
+                    </div>
+                  )}
                   {/* New item indicator */}
                   {isNewItem && (
                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
@@ -237,6 +264,11 @@ export function NewsFetcher() {
                         {item.chain && (
                           <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200">
                             {item.chain}
+                          </span>
+                        )}
+                        {autoMatch && (
+                          <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-500/90 text-white">
+                            Auto
                           </span>
                         )}
                         <time className="text-xs text-neutral-500">
@@ -324,7 +356,7 @@ export function NewsFetcher() {
                           <div className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-1.5 text-right">
                             {item.transactionHash && (
                               <span className="flex items-center gap-1 group/address">
-                                <span className={monitoredAddresses.includes(item.transactionHash) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''}>Tx: {item.transactionHash}</span>
+                                <span className={`${monitoredAddresses.includes(item.transactionHash) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''} ${monitoredMeta[item.transactionHash]?.auto ? 'underline decoration-emerald-500/70' : ''}`}>Tx: {item.transactionHash}</span>
                                 <button
                                   type="button"
                                   onClick={() => { try { navigator.clipboard.writeText(item.transactionHash!); } catch {} }}
@@ -342,7 +374,7 @@ export function NewsFetcher() {
                             {item.transactionHash && item.fromAddress && <span className="hidden sm:inline">|</span>}
                             {item.fromAddress && (
                               <span className="flex items-center gap-1 group/address">
-                                <span className={monitoredAddresses.includes(item.fromAddress) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''}>From: {item.fromAddress}</span>
+                                <span className={`${monitoredAddresses.includes(item.fromAddress) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''} ${monitoredMeta[item.fromAddress]?.auto ? 'underline decoration-emerald-500/70' : ''}`}>From: {item.fromAddress}</span>
                                 <button
                                   type="button"
                                   onClick={() => { try { navigator.clipboard.writeText(item.fromAddress!); } catch {} }}

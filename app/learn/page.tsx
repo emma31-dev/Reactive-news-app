@@ -1,4 +1,5 @@
 import { AuthGate } from '../../components/AuthGate';
+import LearnQuiz from '../../components/LearnQuiz';
 
 export default function LearnPage() {
   return (
@@ -399,6 +400,7 @@ export default function LearnPage() {
           </div>
         </section>
       </div>
+        <LearnQuiz />
       </div>
     </AuthGate>
   );

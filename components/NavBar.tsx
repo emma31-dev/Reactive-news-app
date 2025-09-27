@@ -9,6 +9,42 @@ import { usePathname } from 'next/navigation';
 const getLinkClassName = (pathname: string, href: string) => 
   `flex items-center gap-2 px-3 py-2 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800/70 transition text-sm ${pathname === href ? 'text-blue-500 font-bold' : 'text-neutral-700 dark:text-neutral-200'}`;
 
+// Simple inline icons to avoid asset loading issues for critical UI controls
+function MenuIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 6H20" />
+      <path d="M4 12H20" />
+      <path d="M4 18H20" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 6L18 18" />
+      <path d="M6 18L18 6" />
+    </svg>
+  );
+}
+
 // --- MobileDrawer Component ---
 function MobileDrawer({ open, setOpen, user, logout, toggleTheme, dark, pathname }: any) {
   const linkCls = (href: string) => getLinkClassName(pathname, href);
@@ -29,8 +65,8 @@ function MobileDrawer({ open, setOpen, user, logout, toggleTheme, dark, pathname
       <div className={`absolute top-0 right-0 h-full w-full max-w-xs bg-white dark:bg-neutral-900 transform transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-4 flex items-center justify-between border-b dark:border-neutral-800">
           <span className="font-semibold text-indigo-400">Menu</span>
-          <button onClick={() => setOpen(false)} className="p-2 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800/70">
-            <Image src="/menu.svg" alt="Close" width={20} height={20} className="dark:invert" />
+          <button onClick={() => setOpen(false)} className="p-2 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800/70" aria-label="Close menu">
+            <CloseIcon className="w-5 h-5 text-neutral-700 dark:text-neutral-200" />
           </button>
         </div>
         <nav className="p-2 flex flex-col">
@@ -184,17 +220,17 @@ export function NavBar() {
     <header className="border-b border-neutral-300 dark:border-neutral-800 px-4 h-14 flex items-center justify-between bg-white/70 dark:bg-neutral-950/60 backdrop-blur fixed top-0 left-0 right-0 z-30">
       <a href="/" className="flex items-center gap-2 font-semibold text-indigo-400 tracking-tight">
         <Image src="/logo.svg" alt="Logo" width={26} height={26} className="dark:invert" />
-        <span><span className="!text-blue-600 dark:!text-blue-400">Reactive</span> News</span>
+        <span><span className="!text-blue-600 dark:!text-blue-400">Reactive</span> Events</span>
       </a>
       
       {/* Mobile menu button - always render but control visibility with CSS */}
-      <button 
-        aria-label="Toggle menu" 
-        onClick={() => setOpen(o => !o)} 
-        className="md:hidden p-2 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800/70 transition"
+      <button
+        aria-label="Toggle menu"
+        onClick={() => setOpen(o => !o)}
+        className="md:hidden p-2 rounded hover:bg-neutral-200 dark:hover:bg-neutral-800/70 transition text-neutral-700 dark:text-neutral-200"
         disabled={!mounted || isLoading}
       >
-        <Image src="/menu.svg" alt="Menu" width={22} height={22} className="dark:invert" />
+        <MenuIcon className="w-6 h-6" />
       </button>
       
       {/* Desktop navigation - always render for stability */}
