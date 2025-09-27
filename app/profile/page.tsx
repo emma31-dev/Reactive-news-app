@@ -321,16 +321,7 @@ function ProfileContent() {
         </div>
       </section>
 
-      {/* Advanced address / tx monitoring boxed */}
-      <section>
-  <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 space-y-3 backdrop-blur-md">
-          <div>
-            <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Monitored Addresses / Tx Hashes</h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-500">Add addresses or transaction hashes to highlight or optionally show only matching events.</p>
-          </div>
-          <AdvancedMonitor hideHeader />
-        </div>
-      </section>
+
 
       {/* Wallet Section boxed wrapper */}
       <section>

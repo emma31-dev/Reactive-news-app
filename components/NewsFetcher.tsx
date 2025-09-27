@@ -59,7 +59,7 @@ export function NewsFetcher() {
     if (monitoredOnly && monitoredAddresses.length) {
       base = base.filter(i => {
         const hay = [i.fromAddress, i.toAddress, i.transactionHash].filter(Boolean) as string[];
-        return hay.some(val => monitoredAddresses.includes(val));
+        return hay.some(val => monitoredAddresses.includes(val.toLowerCase()));
       });
     }
     if (filter === 'All') return base;
@@ -97,7 +97,7 @@ export function NewsFetcher() {
       items.forEach(item => {
         if (isNewsSaved(item.id)) return;
         const hay = [item.fromAddress, item.toAddress, item.transactionHash].filter(Boolean) as string[];
-        if (hay.some(v => monitoredMeta[v]?.auto)) {
+        if (hay.some(v => monitoredMeta[v.toLowerCase()]?.auto)) {
           try { saveNews(item); } catch { /* swallow */ }
         }
       });
@@ -233,13 +233,40 @@ export function NewsFetcher() {
               
               // Determine if this item matches monitored addresses for highlighting
               const relatedValues = [item.fromAddress, item.toAddress, item.transactionHash].filter(Boolean) as string[];
-              const monitoredMatch = monitoredAddresses.length > 0 && relatedValues.some(val => monitoredAddresses.includes(val));
-              const autoMatch = relatedValues.some(v => monitoredMeta[v]?.auto);
+              const monitoredMatch = monitoredAddresses.length > 0 && relatedValues.some(val => monitoredAddresses.includes(val.toLowerCase()));
+              const autoMatch = relatedValues.some(v => monitoredMeta[v.toLowerCase()]?.auto);
               return (
                 <article
                   key={item.id}
                   className={`relative bg-white/70 dark:bg-neutral-900/70 rounded-lg border p-4 hover:shadow-md transition-shadow ${monitoredMatch ? (autoMatch ? 'border-emerald-500 dark:border-emerald-400 shadow-emerald-500/30' : 'border-emerald-400 dark:border-emerald-500 shadow-emerald-500/20') : 'border-neutral-200 dark:border-neutral-800'}`}
                 >
+                  {/* Save button top left */}
+                  <button
+                    onClick={() => {
+                      try {
+                        setSaveError(null);
+                        if (isSaved) {
+                          unsaveNews(item.id);
+                        } else {
+                          saveNews(item);
+                        }
+                      } catch (error) {
+                        setSaveError(error instanceof Error ? error.message : 'Failed to save article');
+                      }
+                    }}
+                    className={`absolute right-2 top-2 z-10 p-2 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition ${
+                      isSaved
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                    }`}
+                    title={isSaved ? 'Remove from saved' : 'Save for later'}
+                    aria-label={isSaved ? 'Remove from saved' : 'Save for later'}
+                  >
+                    <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                  </button>
+
                   {autoMatch && (
                     <div className="absolute -left-2 top-4">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-500 text-white shadow">
@@ -254,31 +281,30 @@ export function NewsFetcher() {
                   {isNewItem && (
                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
                   )}
-                  
-                  <div className="pr-10">
-                    {/* Main content */}
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200">
-                          {item.category}
+
+                  <div className="pr-2">
+                    {/* Main content row */}
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200">
+                        {item.category}
+                      </span>
+                      {item.chain && (
+                        <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200">
+                          {item.chain}
                         </span>
-                        {item.chain && (
-                          <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200">
-                            {item.chain}
-                          </span>
-                        )}
-                        {autoMatch && (
-                          <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-500/90 text-white">
-                            Auto
-                          </span>
-                        )}
-                        <time className="text-xs text-neutral-500">
-                          {new Date(item.date).toLocaleString()}
-                        </time>
-                      </div>
-                      
-                      <h3 className="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-                        {item.title}
-                      </h3>
+                      )}
+                      {autoMatch && (
+                        <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-500/90 text-white">
+                          Auto
+                        </span>
+                      )}
+                      <time className="text-xs text-neutral-500">
+                        {new Date(item.date).toLocaleString()}
+                      </time>
+                    </div>
+                    <h3 className="font-medium text-neutral-900 dark:text-neutral-100 mb-2">
+                      {item.title}
+                    </h3>
                       
                       <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                         {item.content}
@@ -356,7 +382,7 @@ export function NewsFetcher() {
                           <div className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-1.5 text-right">
                             {item.transactionHash && (
                               <span className="flex items-center gap-1 group/address">
-                                <span className={`${monitoredAddresses.includes(item.transactionHash) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''} ${monitoredMeta[item.transactionHash]?.auto ? 'underline decoration-emerald-500/70' : ''}`}>Tx: {item.transactionHash}</span>
+                                <span className={`${monitoredAddresses.includes(item.transactionHash?.toLowerCase?.() ?? '') ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''} ${monitoredMeta[item.transactionHash?.toLowerCase?.() ?? '']?.auto ? 'underline decoration-emerald-500/70' : ''}`}>Tx: {item.transactionHash}</span>
                                 <button
                                   type="button"
                                   onClick={() => { try { navigator.clipboard.writeText(item.transactionHash!); } catch {} }}
@@ -374,7 +400,7 @@ export function NewsFetcher() {
                             {item.transactionHash && item.fromAddress && <span className="hidden sm:inline">|</span>}
                             {item.fromAddress && (
                               <span className="flex items-center gap-1 group/address">
-                                <span className={`${monitoredAddresses.includes(item.fromAddress) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''} ${monitoredMeta[item.fromAddress]?.auto ? 'underline decoration-emerald-500/70' : ''}`}>From: {item.fromAddress}</span>
+                                <span className={`${monitoredAddresses.includes(item.fromAddress?.toLowerCase?.() ?? '') ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''} ${monitoredMeta[item.fromAddress?.toLowerCase?.() ?? '']?.auto ? 'underline decoration-emerald-500/70' : ''}`}>From: {item.fromAddress}</span>
                                 <button
                                   type="button"
                                   onClick={() => { try { navigator.clipboard.writeText(item.fromAddress!); } catch {} }}
@@ -399,32 +425,7 @@ export function NewsFetcher() {
                       </div>
                   </div>
 
-                  {/* Save Button (absolute to avoid extra right padding impact) */}
-                  <button
-                    onClick={() => {
-                      try {
-                        setSaveError(null);
-                        if (isSaved) {
-                          unsaveNews(item.id);
-                        } else {
-                          saveNews(item);
-                        }
-                      } catch (error) {
-                        setSaveError(error instanceof Error ? error.message : 'Failed to save article');
-                      }
-                    }}
-                    className={`absolute top-3 right-3 p-2 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition ${
-                      isSaved
-                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
-                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700'
-                    }`}
-                    title={isSaved ? 'Remove from saved' : 'Save for later'}
-                    aria-label={isSaved ? 'Remove from saved' : 'Save for later'}
-                  >
-                    <svg className="w-4 h-4" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                    </svg>
-                  </button>
+
                 </article>
               );
             })

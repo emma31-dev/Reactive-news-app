@@ -200,9 +200,9 @@ function generateMockNewsItem(sequence: number, chain: string, timestamp: number
  */
 function generateDeterministicItems(): any[] {
   const now = Date.now();
-  const intervalsSinceAnchor = Math.floor((now - ANCHOR_EPOCH) / INTERVAL_MS);
+  let intervalsSinceAnchor = Math.floor((now - ANCHOR_EPOCH) / INTERVAL_MS);
+  if (intervalsSinceAnchor < 0) intervalsSinceAnchor = 0; // Always at least one interval
   const itemsPerInterval = CHAINS.length;
-  // We target soft capacity (MAX - SOFT_BUFFER) so new interval arrivals conceptually 'free' 3 slots
   const targetCapacity = MAX_ITEMS - SOFT_BUFFER; // 495
   const intervalsNeeded = Math.ceil(targetCapacity / itemsPerInterval);
   const startInterval = Math.max(0, intervalsSinceAnchor - intervalsNeeded + 1);
@@ -215,8 +215,6 @@ function generateDeterministicItems(): any[] {
     }
     if (items.length >= targetCapacity) break;
   }
-  // Simulate trimming the oldest 3 before adding the next 3: provide slice of newest targetCapacity
-  // Client merge will then add next batch (first request after new interval) creating up to 300 then slide.
   return items;
 }
 
