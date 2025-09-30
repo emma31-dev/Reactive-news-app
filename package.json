@@ -3,20 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+  "dev": "node -r ./scripts/preload-errors.js ./node_modules/next/dist/bin/next dev",
+    "test:contracts": "hardhat test",
+  "deploy:reactive": "hardhat run --network reactive scripts/deploy.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-  "ethers": "^6.15.0",
-  "git": "^0.1.5",
-  "next": "^14.2.32",
-  "react": "18.3.1",
-  "react-dom": "18.3.1"
+    "@helia/json": "^4.0.7",
+    "@web3modal/react": "^2.7.1",
+    "ethers": "^6.15.0",
+    "helia": "^5.5.1",
+    "lightweight-charts": "^5.0.8",
+    "next": "^15.5.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "web3.storage": "^4.5.5"
   },
   "devDependencies": {
-  "@types/node": "20.11.30",
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "hardhat": "^2.18.0",
+  "dotenv": "^16.3.1",
+    "@types/node": "20.11.30",
     "@types/react": "18.2.73",
     "@types/react-dom": "18.2.23",
     "autoprefixer": "10.4.19",

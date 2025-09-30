@@ -34,30 +34,44 @@ export const AdvancedMonitor: React.FC<AdvancedMonitorProps> = ({ hideHeader = f
         <>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-500">Advanced Address Monitor</h3>
-            <label className="flex items-center gap-1 text-[11px] cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={monitoredOnly}
-                onChange={e => setMonitoredOnly(e.target.checked)}
-                className="accent-indigo-600"
-              />
-              <span className="text-neutral-500">Show Only Monitored</span>
-            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMonitoredOnly(!monitoredOnly)}
+                className={`relative inline-flex items-center h-5 w-10 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40 border border-neutral-300 dark:border-neutral-700 ${monitoredOnly ? 'bg-indigo-600' : 'bg-neutral-300 dark:bg-neutral-700'}`}
+                aria-pressed={monitoredOnly}
+                title="Show Only Monitored"
+                style={{ padding: 0 }}
+              >
+                <span className="sr-only">Show Only Monitored</span>
+                <span
+                  className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${monitoredOnly ? 'translate-x-5' : 'translate-x-1'}`}
+                  style={{ left: 0 }}
+                />
+              </button>
+              <span className="text-neutral-500 text-[11px] select-none">Show Only Monitored</span>
+            </div>
           </div>
           <p className="text-xs text-neutral-400">Add wallet addresses or transaction hashes to highlight (and optionally filter) matching events.</p>
         </>
       )}
       {hideHeader && (
         <div className="flex items-center justify-end -mt-1">
-          <label className="flex items-center gap-1 text-[11px] cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={monitoredOnly}
-              onChange={e => setMonitoredOnly(e.target.checked)}
-              className="accent-indigo-600"
-            />
-            <span className="text-neutral-500">Show Only Monitored</span>
-          </label>
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => setMonitoredOnly(!monitoredOnly)}
+              className={`relative inline-flex items-center h-5 w-10 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40 border border-neutral-300 dark:border-neutral-700 ${monitoredOnly ? 'bg-indigo-600' : 'bg-neutral-300 dark:bg-neutral-700'}`}
+              aria-pressed={monitoredOnly}
+              title="Show Only Monitored"
+            >
+              <span className="sr-only">Show Only Monitored</span>
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${monitoredOnly ? 'translate-x-5' : 'translate-x-1'}`}
+              />
+            </button>
+            <span className="text-neutral-500 text-[11px] select-none">Show Only Monitored</span>
+          </div>
         </div>
       )}
       <div className="flex gap-2">
@@ -79,7 +93,8 @@ export const AdvancedMonitor: React.FC<AdvancedMonitorProps> = ({ hideHeader = f
         <div className="text-xs text-neutral-500">No monitored addresses yet.</div>
       ) : (
         <div className="space-y-2">
-          <ul className="space-y-1 max-h-40 overflow-y-auto pr-1">
+          {/* Added max-h-56 for taller scroll, overflow-y-auto, and border for clarity */}
+          <ul className="space-y-1 max-h-56 overflow-y-auto pr-1 border border-neutral-200 dark:border-neutral-700 rounded-md bg-white/60 dark:bg-neutral-900/40">
             {monitoredAddresses.map(addr => {
               const addrKey = addr.toLowerCase(); // Ensure consistent lookup
               const isAutoActive = monitoredMeta[addrKey]?.auto;

@@ -6,7 +6,7 @@ const SOFT_BUFFER = 5; // Maintain a small buffer (495 + fresh batch)
 const INTERVAL_MS = 10000; // 10s per interval per chain
 const ANCHOR_EPOCH = Date.UTC(2025, 0, 1, 0, 0, 0, 0); // Fixed start point (Jan 1 2025 UTC)
 
-// Supported chains for interoperability feature
+// Supported chains for interoperability feature (all events must interact with Reactive Network)
 const CHAINS = [
   'Ethereum',
   'Avalanche',
@@ -171,13 +171,28 @@ function generateMockNewsItem(sequence: number, chain: string, timestamp: number
   const randomValue = Math.floor(Math.random() * 10000) + 100;
   const eventData = onChainEvents[category as keyof typeof onChainEvents][Math.floor(Math.random() * onChainEvents[category as keyof typeof onChainEvents].length)];
   const transactionHash = `0x${Math.random().toString(16).slice(2, 64)}`;
-  const fromAddress = `reactive1${Math.random().toString(16).slice(2, 38)}`;
-  const toAddress = `reactive1${Math.random().toString(16).slice(2, 38)}`;
+  // Randomly choose cross-chain (Reactive involved) or on-chain (single chain)
+  const isCrossChain = Math.random() < 0.5;
+  let fromAddress, toAddress, eventLabel;
+  if (isCrossChain) {
+    const involveReactiveAsSource = Math.random() > 0.5;
+    fromAddress = involveReactiveAsSource
+      ? `reactive1${Math.random().toString(16).slice(2, 38)}`
+      : `${chain.toLowerCase()}1${Math.random().toString(16).slice(2, 38)}`;
+    toAddress = involveReactiveAsSource
+      ? `${chain.toLowerCase()}1${Math.random().toString(16).slice(2, 38)}`
+      : `reactive1${Math.random().toString(16).slice(2, 38)}`;
+    eventLabel = 'Cross-chain';
+  } else {
+    fromAddress = `${chain.toLowerCase()}1${Math.random().toString(16).slice(2, 38)}`;
+    toAddress = `${chain.toLowerCase()}1${Math.random().toString(16).slice(2, 38)}`;
+    eventLabel = 'On-chain';
+  }
 
   return {
     id: `${sequence}-${chain.replace(/\s+/g,'_')}-${timestamp}`,
     title: `${eventData.event}: ${eventData.description}`,
-    content: `Reactive Network detected ${eventData.event} with value ${randomValue.toLocaleString()} REACT. Block confirmation received from validator network.`,
+    content: `${eventLabel} event detected: ${eventData.event} ${isCrossChain ? `involving Reactive Network and ${chain}` : `on ${chain}`} . Value: ${randomValue.toLocaleString()} REACT.`,
     author: author,
     date: new Date(timestamp).toISOString(),
     category: category,
@@ -189,7 +204,8 @@ function generateMockNewsItem(sequence: number, chain: string, timestamp: number
     blockHeight: Math.floor(Math.random() * 1000000) + 5000000,
     gasUsed: Math.floor(Math.random() * 200000) + 21000,
     reactValue: randomValue,
-    verbose: buildVerbose(category, { chain, fromAddress, toAddress, transactionHash })
+    verbose: buildVerbose(category, { chain, fromAddress, toAddress, transactionHash }),
+    crossChain: isCrossChain
   };
 }
 

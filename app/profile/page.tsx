@@ -4,9 +4,8 @@ import { AuthGate } from '../../components/AuthGate';
 import { useAuth } from '../../components/AuthContext';
 import { useSavedNews } from '../../components/SavedNewsContext';
 import { useWeb3 } from '../../components/Web3Context';
-import { Web3ConnectButton } from '../../components/VerificationBadge';
 import { ChainSelector } from '../../components/ChainSelector';
-import { AdvancedMonitor } from '../../components/AdvancedMonitor';
+import ClientOnlyAdvancedMonitor from '../../components/ClientOnlyAdvancedMonitor';
 import { WalletDiagnostics } from '../../components/WalletDiagnostics';
 
 export default function ProfilePage() {
@@ -74,7 +73,6 @@ function WalletSection({ hideHeader = false }: { hideHeader?: boolean }) {
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
               Connect to participate in news verification, earn rewards, and access blockchain features
             </p>
-            <Web3ConnectButton />
             
             {/* Diagnostics Panel (for debugging) */}
             <WalletDiagnostics />
@@ -93,6 +91,11 @@ function WalletSection({ hideHeader = false }: { hideHeader?: boolean }) {
                 Get Testnet REACT →
               </a>
             </div>
+            
+            {/* Wallet Connect moved to profile/connect page */}
+            <div className="mt-4">
+              <a href="/profile/connect" className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">Connect Wallet</a>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
@@ -103,9 +106,21 @@ function WalletSection({ hideHeader = false }: { hideHeader?: boolean }) {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm font-medium text-green-600 dark:text-green-400">Wallet Connected</span>
                 </div>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">
-                  {account?.slice(0, 6)}...{account?.slice(-4)}
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">
+                    {account?.slice(0, 6)}...{account?.slice(-4)}
+                  </p>
+                  {isCorrectNetwork && (
+                    <span className="px-2 py-0.5 text-[11px] font-semibold bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 rounded">
+                      Connected to Reactive
+                    </span>
+                  )}
+                  {!isCorrectNetwork && (
+                    <span className="px-2 py-0.5 text-[11px] font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 rounded">
+                      Wrong Network
+                    </span>
+                  )}
+                </div>
               </div>
               {!isCorrectNetwork && (
                 <button
@@ -215,6 +230,171 @@ function WalletSection({ hideHeader = false }: { hideHeader?: boolean }) {
   );
 }
 
+// --- Merged review subcomponents ---
+
+function ReviewFormContainer({ derivedName }: { derivedName: string }) {
+  const [rating, setRating] = React.useState<number>(5);
+  const [comment, setComment] = React.useState<string>('');
+  const [submitted, setSubmitted] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: derivedName.trim(), rating, comment: comment.trim() }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSubmitted(true);
+        setRating(5);
+        setComment('');
+        // trigger a custom event so ReviewsDisplay can refresh (simple cross-component signal)
+        window.dispatchEvent(new Event('reviews:refresh'));
+      } else {
+        setError(data.error || 'Failed to submit review');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Review submission error:', err);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setSubmitted(false), 3000);
+    }
+  };
+
+  return (
+    <form onSubmit={submitReview} className="space-y-3">
+      {submitted && (
+        <div className="bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 p-3 rounded">Thank you for your review!</div>
+      )}
+      {error && (
+        <div className="bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 p-3 rounded">{error}</div>
+      )}
+
+      {derivedName ? (
+        <div className="text-sm text-neutral-400 bg-neutral-800/40 border border-neutral-700 rounded px-3 py-2 flex items-center gap-2">
+          <span className="text-neutral-300">Posting as</span>
+          <span className="font-semibold text-indigo-400">{derivedName}</span>
+          <span className="text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">Verified</span>
+        </div>
+      ) : (
+        <div className="text-xs text-amber-500 bg-amber-900/20 border border-amber-600/30 px-3 py-2 rounded">You are not logged in. Login to post as a verified user.</div>
+      )}
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Rating</label>
+        <div className="flex gap-2 mb-2">
+          {[1,2,3,4,5].map(s => (
+            <button key={s} type="button" onClick={() => setRating(s)} className={`text-2xl ${s <= rating ? 'text-yellow-400' : 'text-gray-400'}`}>★</button>
+          ))}
+          <span className="ml-2 text-sm text-neutral-400">({rating} star{rating !== 1 ? 's' : ''})</span>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Your Review</label>
+        <textarea value={comment} onChange={(e) => setComment(e.target.value)} className="input w-full" rows={4} minLength={10} required placeholder="What did you think of the Reactive Network monitoring app?" />
+      </div>
+
+      <button type="submit" disabled={loading || !derivedName} className="btn btn-primary w-full">{loading ? 'Submitting...' : 'Submit Review'}</button>
+    </form>
+  );
+}
+
+function FeaturePoll() {
+  const [vote, setVote] = React.useState<string | null>(null);
+  return (
+    <div className="space-y-2">
+      <button onClick={() => setVote('ai-summary')} disabled={!!vote} className={`w-full p-3 text-left rounded-md border ${vote === 'ai-summary' ? 'bg-indigo-600 text-white' : 'bg-neutral-800/50'}`}>AI-Powered News Summaries</button>
+      <button onClick={() => setVote('portfolio-tracking')} disabled={!!vote} className={`w-full p-3 text-left rounded-md border ${vote === 'portfolio-tracking' ? 'bg-indigo-600 text-white' : 'bg-neutral-800/50'}`}>Portfolio Tracking Integration</button>
+      <button onClick={() => setVote('sentiment-analysis')} disabled={!!vote} className={`w-full p-3 text-left rounded-md border ${vote === 'sentiment-analysis' ? 'bg-indigo-600 text-white' : 'bg-neutral-800/50'}`}>Market Sentiment Analysis</button>
+      {vote && <p className="text-center text-sm text-indigo-400 mt-2">Thanks for your vote!</p>}
+    </div>
+  );
+}
+
+function ReviewsDisplay() {
+  const [reviews, setReviews] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/reviews');
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(data.reviews || []);
+      }
+    } catch (err) {
+      console.error('Failed to load reviews', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    load();
+    const handler = () => load();
+    window.addEventListener('reviews:refresh', handler);
+    return () => window.removeEventListener('reviews:refresh', handler);
+  }, []);
+
+  if (loading) return <div className="text-neutral-400">Loading reviews...</div>;
+  if (!reviews || reviews.length === 0) return <div className="text-neutral-400">No reviews yet. Be the first to leave a review!</div>;
+
+  const avg = reviews.length > 0 ? (reviews.reduce((s:any,r:any)=>s+r.rating,0)/reviews.length).toFixed(1) : '0';
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-neutral-900/20 rounded-lg p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-neutral-400">Average Rating</p>
+            <div className="flex items-center gap-2">
+              <div className="flex">
+                {Array.from({length:5}).map((_,i)=>(
+                  <span key={i} className={`text-lg ${i < Math.round(parseFloat(avg)) ? 'text-yellow-400' : 'text-gray-400'}`}>★</span>
+                ))}
+              </div>
+              <span className="font-semibold">{avg}</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-neutral-400">Total Reviews</p>
+            <p className="text-2xl font-bold">{reviews.length}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="max-h-72 overflow-y-auto space-y-3">
+          {reviews.slice(0,10).map((review:any)=> (
+            <div key={review.id} className="bg-neutral-900/20 rounded-lg p-3 border border-neutral-800">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <h5 className="font-semibold text-indigo-400">{review.name} {review.verified && <span className="ml-2 text-xs bg-green-600 text-white px-2 py-0.5 rounded">Verified</span>}</h5>
+              </div>
+              <div className="flex items-center gap-1">
+                {Array.from({length: review.rating}, (_,i)=>(<span key={i} className="text-yellow-400">★</span>))}
+                {Array.from({length: 5-review.rating}, (_,i)=>(<span key={i} className="text-gray-400">★</span>))}
+              </div>
+            </div>
+            <p className="text-neutral-200 mb-2">{review.comment}</p>
+            <p className="text-xs text-neutral-400">{new Date(review.timestamp).toLocaleDateString()}</p>
+          </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProfileContent() {
   const { user, updateUsername } = useAuth();
   const { savedNews, unsaveNews, getSavedNewsCount } = useSavedNews();
@@ -301,6 +481,11 @@ function ProfileContent() {
             <span className="inline-block px-2 py-1 text-[10px] font-semibold !text-white bg-indigo-600 rounded-full">Basic Plan</span>
           </div>
           <p className="text-xs text-neutral-500">{user?.email}</p>
+          {user?.projectId && (
+            <div className="text-xs text-neutral-700 dark:text-neutral-300 mt-1">
+              <span className="font-semibold">Project ID:</span> <span className="font-mono select-all">{user.projectId}</span>
+            </div>
+          )}
           <label className="mt-2 inline-block text-xs cursor-pointer text-indigo-500 hover:underline">
             Change picture
             <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
@@ -323,19 +508,6 @@ function ProfileContent() {
 
 
 
-      {/* Wallet Section boxed wrapper */}
-      <section>
-  <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 backdrop-blur-md">
-          <div className="mb-4">
-            <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Wallet & Blockchain</h3>
-            <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">Connect your wallet to interact with blockchain features and earn REACT tokens.</p>
-          </div>
-          {/* Reuse the existing WalletSection content minus its outer section styling */}
-          <div>
-            <WalletSection hideHeader />
-          </div>
-        </div>
-      </section>
 
       {/* Saved News Section boxed */}
       <section>
@@ -458,6 +630,37 @@ function ProfileContent() {
               )}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Reviews Section (merged from /review) */}
+      <section>
+        <div className="bg-white/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 space-y-4 backdrop-blur-md">
+          <div>
+            <h3 className="text-sm font-medium uppercase tracking-wide text-neutral-600 dark:text-neutral-400">Reviews & Feedback</h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-1">Leave feedback, vote on features, and browse user reviews.</p>
+          </div>
+
+          <div className="space-y-6">
+            {/* Review Form */}
+            <div>
+              <h4 className="text-lg font-semibold mb-3">Leave a Review</h4>
+              <ReviewFormContainer derivedName={user?.username || user?.email?.split('@')[0] || ''} />
+            </div>
+
+            {/* Poll Section */}
+            <div>
+              <h4 className="text-lg font-semibold mb-2">Vote for the Next Feature</h4>
+              <p className="text-sm text-neutral-400 mb-3">Help us decide what to build next.</p>
+              <FeaturePoll />
+            </div>
+
+            {/* Reviews List */}
+            <div>
+              <h4 className="text-lg font-semibold mb-3">User Reviews</h4>
+              <ReviewsDisplay />
+            </div>
+          </div>
         </div>
       </section>
     </div>

@@ -433,7 +433,31 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 export function useWeb3() {
   const context = useContext(Web3Context);
   if (context === undefined) {
-    throw new Error('useWeb3 must be used within a Web3Provider');
+    // Instead of throwing, return a safe fallback to avoid runtime crashes
+    // when components call useWeb3() before a provider is mounted.
+    console.warn('useWeb3() called without a Web3Provider - returning fallback stub.');
+    const noop = async () => {};
+    const fallback = {
+      provider: null,
+      signer: null,
+      account: null,
+      chainId: null,
+      connected: false,
+      connecting: false,
+      newsContract: null,
+      expectedChainId: REACTIVE_NETWORK_CONFIG.chainId,
+      wrongNetwork: false,
+      configError: 'Web3Provider not mounted',
+      connect: async () => { throw new Error('Web3Provider not available'); },
+      disconnect: () => {},
+      switchToReactiveNetwork: async () => { throw new Error('Web3Provider not available'); },
+      submitNews: async () => { throw new Error('Web3Provider not available'); },
+      voteOnNews: async () => { throw new Error('Web3Provider not available'); },
+      getNewsVerification: async () => false,
+      getOnChainNews: async () => { throw new Error('Web3Provider not available'); },
+      subscribeToNewsEvents: () => () => {}
+    } as Web3ContextType;
+    return fallback;
   }
   return context;
 }

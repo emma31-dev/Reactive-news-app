@@ -1,5 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { uploadToIPFS } from '../lib/ipfs';
+import { hashEmail } from '../lib/hash';
 import { useRouter } from 'next/navigation';
 
 interface UserPrefs {
@@ -29,6 +31,7 @@ interface StoredUser {
   username?: string; // display / handle
   prefs?: UserPrefs;
   verified?: boolean; // email ownership confirmed
+  projectId: string; // unique project id
 }
 
 interface MonitoredMetaEntry {
@@ -37,6 +40,7 @@ interface MonitoredMetaEntry {
 
 interface AuthContextValue {
   user: StoredUser | null;
+  initializing: boolean;
   signup: (email: string, username: string, password: string) => Promise<void>;
   login: (identifier: string, password: string) => Promise<void>; // identifier can be email or username
   logout: () => void;
@@ -56,40 +60,48 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<StoredUser | null>(null);
+  const [initializing, setInitializing] = useState<boolean>(true);
   const [monitoredAddresses, setMonitoredAddresses] = useState<string[]>([]);
   const [monitoredOnly, setMonitoredOnly] = useState<boolean>(false);
   const [monitoredMeta, setMonitoredMeta] = useState<Record<string, MonitoredMetaEntry>>({});
   const router = useRouter();
 
+  // IPFS: Load user data from IPFS hash in localStorage (if present)
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('authUser') : null;
-    if (stored) {
-      try {
-        const parsedUser = JSON.parse(stored);
-        // Check if user has old preference structure and migrate
-        if (parsedUser.prefs) {
-          // Determine if migration needed (missing any new keys)
+    const loadUserFromIPFS = async () => {
+      if (typeof window === 'undefined') return;
+      const ipfsHash = localStorage.getItem('authUserIpfsHash');
+      if (ipfsHash) {
+        try {
+          const res = await fetch(`https://ipfs.io/ipfs/${ipfsHash}`);
+          if (!res.ok) {
+            // Only remove if 404 (not found), otherwise keep for retry
+            if (res.status === 404) {
+              localStorage.removeItem('authUserIpfsHash');
+            }
+            return;
+          }
+          const parsedUser = await res.json();
+          if (parsedUser.prefs) {
             const needsMigration = Object.keys(defaultPrefs).some(k => !(k in parsedUser.prefs));
             if (needsMigration) {
               const migrated = { ...defaultPrefs, ...parsedUser.prefs };
               const newUser = { ...parsedUser, prefs: migrated };
-              localStorage.setItem('authUser', JSON.stringify(newUser));
               setUser(newUser);
+              await saveUserToIPFS(newUser);
             } else {
               setUser(parsedUser);
             }
-        } else {
-          // No prefs stored, attach defaults
-          const newUser = { ...parsedUser, prefs: defaultPrefs };
-          localStorage.setItem('authUser', JSON.stringify(newUser));
-          setUser(newUser);
+          } else {
+            const newUser = { ...parsedUser, prefs: defaultPrefs };
+            setUser(newUser);
+            await saveUserToIPFS(newUser);
+          }
+        } catch (e) {
+          // Network or transient error: do not remove hash, allow retry on next navigation
         }
-      } catch (_) {
-        // Corrupted local storage entry; clear it.
-        localStorage.removeItem('authUser');
       }
-    }
-    if (typeof window !== 'undefined') {
+      // Monitored addresses and meta (optional: can also be IPFS)
       try {
         const ma = localStorage.getItem('monitoredAddresses');
         if (ma) setMonitoredAddresses(JSON.parse(ma));
@@ -102,8 +114,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const mm = localStorage.getItem('monitoredMeta');
         if (mm) setMonitoredMeta(JSON.parse(mm));
       } catch {}
-    }
+    };
+    loadUserFromIPFS().finally(() => setInitializing(false));
   }, []);
+
+  // Helper to save user to IPFS and store hash
+  // Returns the upload result ({ cid, url }) so callers can react when it's available
+  const saveUserToIPFS = async (userObj: StoredUser): Promise<{ cid: string; url: string }> => {
+    const result = await uploadToIPFS(userObj);
+    try { localStorage.setItem('authUserIpfsHash', result.cid); } catch {}
+    return result;
+  };
 
   // Migration: ensure all monitored addresses & meta keys are lowercase (idempotent)
   useEffect(() => {
@@ -122,64 +143,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [monitoredAddresses, monitoredMeta]);
 
+  // Helper to generate a unique project ID
+  function generateProjectId(email: string) {
+    return hashEmail(email.toLowerCase());
+  }
+
   const signup = async (email: string, username: string, password: string) => {
     const cleanUsername = username.trim() || email.split('@')[0];
-    const newUser: StoredUser = { email, username: cleanUsername, prefs: defaultPrefs, verified: true };
-    localStorage.setItem('authUser', JSON.stringify(newUser));
+    const newUser: StoredUser = {
+      email,
+      username: cleanUsername,
+      prefs: defaultPrefs,
+      verified: true,
+      projectId: generateProjectId(email),
+    };
     setUser(newUser);
+    // Save to IPFS in the background so signup/login do not block the UI.
+    // Persisting the CID will happen when upload completes.
+    saveUserToIPFS(newUser).then(({ cid }) => {
+      try { localStorage.setItem('authUserIpfsHash', cid); } catch {}
+    }).catch(() => {
+      // Swallow network errors here to avoid breaking the signup flow; keep user in-memory
+    });
     router.push('/');
   };
 
+  // Now require projectId for login
   const login = async (identifier: string, password: string) => {
-    const stored = localStorage.getItem('authUser');
-    if (stored) {
+    // Try to load from IPFS hash if present
+    const ipfsHash = localStorage.getItem('authUserIpfsHash');
+    if (ipfsHash) {
       try {
-        const existing: StoredUser = JSON.parse(stored);
+        const res = await fetch(`https://ipfs.io/ipfs/${ipfsHash}`);
+        const existing: StoredUser = await res.json();
         if (existing.email === identifier || existing.username === identifier) {
-          // Ensure prefs merged with defaults
-            const prefs = { ...defaultPrefs, ...existing.prefs };
-            const merged = { ...existing, prefs };
-            localStorage.setItem('authUser', JSON.stringify(merged));
-            setUser(merged);
-            router.push('/');
-            return;
+          const prefs = { ...defaultPrefs, ...existing.prefs };
+          const merged = { ...existing, prefs };
+          setUser(merged);
+          // Save in background (non-blocking)
+          saveUserToIPFS(merged).then(({ cid }) => { try { localStorage.setItem('authUserIpfsHash', cid); } catch {} }).catch(() => {});
+          router.push('/');
+          return;
         }
-      } catch { /* ignore */ }
+      } catch {}
     }
     // If user not found, create a new one with identifier treated as email
-    const emailCandidate = identifier.includes('@') ? identifier : `${identifier}@example.local`; // fallback synthetic email
-    const newUser: StoredUser = { email: emailCandidate, username: identifier.includes('@') ? identifier.split('@')[0] : identifier, prefs: defaultPrefs, verified: true };
-    localStorage.setItem('authUser', JSON.stringify(newUser));
+    const emailCandidate = identifier.includes('@') ? identifier : `${identifier}@example.local`;
+    const newUser: StoredUser = {
+      email: emailCandidate,
+      username: identifier.includes('@') ? identifier.split('@')[0] : identifier,
+      prefs: defaultPrefs,
+      verified: true,
+      projectId: generateProjectId(emailCandidate),
+    };
     setUser(newUser);
+    saveUserToIPFS(newUser).then(({ cid }) => { try { localStorage.setItem('authUserIpfsHash', cid); } catch {} }).catch(() => {});
     router.push('/');
   };
 
   const logout = () => {
-    localStorage.removeItem('authUser');
+    localStorage.removeItem('authUserIpfsHash');
     localStorage.removeItem('monitoredAddresses');
     localStorage.removeItem('monitoredOnly');
-  localStorage.removeItem('monitoredMeta');
+    localStorage.removeItem('monitoredMeta');
     setUser(null);
     setMonitoredAddresses([]);
     setMonitoredOnly(false);
-  setMonitoredMeta({});
+    setMonitoredMeta({});
     router.push('/login');
   };
 
-  const updatePreferences = (prefs: UserPrefs) => {
+  const updatePreferences = async (prefs: UserPrefs) => {
     if (!user) return;
     const updated: StoredUser = { ...user, prefs };
     setUser(updated);
-    localStorage.setItem('authUser', JSON.stringify(updated));
+    await saveUserToIPFS(updated);
   };
 
-  const updateUsername = (username: string) => {
+  const updateUsername = async (username: string) => {
     if (!user) return;
     const clean = username.trim();
     if (!clean) return;
     const updated: StoredUser = { ...user, username: clean };
     setUser(updated);
-    localStorage.setItem('authUser', JSON.stringify(updated));
+    await saveUserToIPFS(updated);
   };
 
   // Monitored address management
@@ -238,7 +285,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, signup, login, logout, updatePreferences, updateUsername, monitoredAddresses, addMonitoredAddress, removeMonitoredAddress, clearMonitoredAddresses, monitoredOnly, setMonitoredOnly: setMonitoredOnlyWrapped, monitoredMeta, toggleAddressAutoSave }}>
+    <AuthContext.Provider value={{ user, initializing, signup, login, logout, updatePreferences, updateUsername, monitoredAddresses, addMonitoredAddress, removeMonitoredAddress, clearMonitoredAddresses, monitoredOnly, setMonitoredOnly: setMonitoredOnlyWrapped, monitoredMeta, toggleAddressAutoSave }}>
       {children}
     </AuthContext.Provider>
   );

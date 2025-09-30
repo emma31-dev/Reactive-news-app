@@ -39,22 +39,20 @@ export default function ReactPriceBar() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: whiteTextCSS }} />
+      <style>{`.react-price-bar-white *, .react-price-bar-white { color: #fff !important; text-shadow: 0 1px 2px rgba(0,0,0,0.10); }`}</style>
       <div 
-        className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 py-3 px-4 lg:px-8 xl:px-12 shadow-lg backdrop-blur-sm border-t border-blue-500/30 force-white-text" 
-        style={forceWhiteStyle}
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-blue-500/30 bg-gradient-to-r from-blue-600 to-indigo-600 backdrop-blur px-4 py-3 lg:px-8 xl:px-12 shadow-lg react-price-bar-white"
       >
         <div 
-          className="max-w-4xl xl:max-w-6xl mx-auto flex items-center justify-center space-x-4 md:space-x-6 text-sm font-medium force-white-text" 
-          style={forceWhiteStyle}
+          className="max-w-4xl xl:max-w-6xl mx-auto flex items-center justify-center space-x-4 md:space-x-6 text-sm font-medium"
         >
         {loading ? (
           <DotSpinner />
         ) : (
           <>
             <div className="flex items-center space-x-2">
-              <span className="!text-white force-white-text" style={forceWhiteStyle}>{priceData.symbol}/USD:</span>
-              <span className="font-bold !text-white force-white-text" style={forceWhiteStyle}>
+              <span className="font-semibold">{priceData.symbol}/USD:</span>
+              <span className="font-bold">
                 {hasValidData ? `$${priceData.price}` : priceData.price}
               </span>
             </div>
@@ -71,8 +69,8 @@ export default function ReactPriceBar() {
             )}
 
             {hasValidData && (
-              <div className="text-xs hidden sm:block !text-white force-white-text" style={forceWhiteStyle}>
-                <span className="!text-white force-white-text" style={forceWhiteStyle}>24h: </span>
+              <div className="text-xs hidden sm:block">
+                <span className="text-white/80">24h: </span>
                 <span className={isPositive ? 'text-green-300' : 'text-red-300'}>
                   {isPositive ? '+' : ''}${priceData.change24h}
                 </span>
@@ -82,15 +80,15 @@ export default function ReactPriceBar() {
             {/* Suppress explicit API error message per request; silently rely on stale/offline badge */}
 
             {hasValidData && !error && !stale && (
-              <div className="hidden md:flex items-center text-xs space-x-1 !text-white force-white-text" style={forceWhiteStyle}>
+              <div className="hidden md:flex items-center text-xs space-x-1">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="!text-white force-white-text" style={forceWhiteStyle}>Live</span>
+                <span className="text-white/90">Live</span>
               </div>
             )}
             {hasValidData && stale && (
-              <div className="hidden md:flex items-center text-xs space-x-1 !text-white force-white-text" style={forceWhiteStyle}>
+              <div className="hidden md:flex items-center text-xs space-x-1">
                 <div className="w-2 h-2 bg-amber-300 rounded-full"></div>
-                <span className="!text-white force-white-text" style={forceWhiteStyle}>Offline (cached)</span>
+                <span className="text-white/90">Offline (cached)</span>
               </div>
             )}
           </>

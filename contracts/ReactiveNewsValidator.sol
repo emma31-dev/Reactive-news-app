@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@reactive-network/contracts/src/IReactive.sol";
-import "@reactive-network/contracts/src/AbstractReactive.sol";
+import "./lib/reactive/IReactive.sol";
+import "./lib/reactive/AbstractReactive.sol";
 
 /**
  * @title ReactiveNewsValidator
@@ -186,20 +186,22 @@ contract ReactiveNewsValidator is AbstractReactive {
         
         Verifier storage verifier = verifiers[msg.sender];
         verifier.totalVerifications++;
-        
+
+        uint256 oldReputation = verifier.reputation;
+
         if (isVerified) {
             verifier.correctVerifications++;
             // Boost reputation for correct verifications
-            verifier.reputation += 10;
+            verifier.reputation = verifier.reputation + 10;
         } else {
             // Slight penalty for rejected news
             if (verifier.reputation > 10) {
-                verifier.reputation -= 5;
+                verifier.reputation = verifier.reputation - 5;
             }
         }
-        
+
         emit NewsVerified(newsId, isVerified, newsItems[newsId].upvotes, newsItems[newsId].downvotes);
-        emit VerifierReputation(msg.sender, verifier.reputation - (isVerified ? 10 : -5), verifier.reputation);
+        emit VerifierReputation(msg.sender, oldReputation, verifier.reputation);
         
         // Reactive callback for verification
         emit ReactiveCallback(newsId, "verified", abi.encode(isVerified, msg.sender));

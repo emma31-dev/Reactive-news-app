@@ -31,7 +31,6 @@ class NavBarErrorBoundary extends React.Component<
           </a>
           <nav className="flex items-center gap-4 text-sm">
             <a href="/" className="hover:text-blue-500">Home</a>
-            <a href="/about" className="hover:text-blue-500">About</a>
             <a href="/login" className="hover:text-blue-500">Login</a>
           </nav>
         </header>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useWeb3 } from './Web3Context';
 
 interface VerificationBadgeProps {
@@ -10,244 +10,85 @@ interface VerificationBadgeProps {
 }
 
 export function VerificationBadge({ newsId, title, content, category }: VerificationBadgeProps) {
-  const { connected, getNewsVerification, submitNews, voteOnNews, account } = useWeb3();
-  const [isVerified, setIsVerified] = useState(false);
-  const [onChainId, setOnChainId] = useState<string | null>(newsId || null);
-  const [submitting, setSubmitting] = useState(false);
-  const [voting, setVoting] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<'unverified' | 'pending' | 'verified' | 'rejected'>('unverified');
-
-  const checkVerification = useCallback(async () => {
-    if (!onChainId) return;
-    
-    try {
-      const verified = await getNewsVerification(onChainId);
-      setIsVerified(verified);
-      setVerificationStatus(verified ? 'verified' : 'pending');
-    } catch (error) {
-      console.error('Error checking verification:', error);
-    }
-  }, [onChainId, getNewsVerification]);
+  const { connected, account, getNewsVerification, newsContract } = useWeb3() as any;
+  const [verified, setVerified] = useState<boolean | null>(null);
+  const [isVerifier, setIsVerifier] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (onChainId && connected) {
-      checkVerification();
-    }
-  }, [onChainId, connected, checkVerification]);
-
-  const handleSubmitToBlockchain = async () => {
-    if (!connected || submitting) return;
-    
-    setSubmitting(true);
-    try {
-      const result = await submitNews(title, content, category);
-      if (result) {
-        // If we got a newsId, use it (result is already a string)
-        if (result && result.trim()) {
-          setOnChainId(result);
-          setVerificationStatus('pending');
+    let mounted = true;
+    const load = async () => {
+      if (!newsId) {
+        if (mounted) {
+          setVerified(null);
+          setIsVerifier(null);
         }
-      }
-    } catch (error) {
-      console.error('Error submitting to blockchain:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleVote = async (upvote: boolean) => {
-    if (!connected || !onChainId || voting) return;
-    
-    setVoting(true);
-    try {
-      await voteOnNews(onChainId, upvote);
-      // Refresh verification status
-      setTimeout(checkVerification, 2000);
-    } catch (error) {
-      console.error('Error voting:', error);
-    } finally {
-      setVoting(false);
-    }
-  };
-
-  if (!connected) {
-    return (
-      <div className="flex items-center space-x-2 text-xs text-gray-500">
-        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-        <span>Connect wallet for verification</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center space-x-3">
-      {/* Verification Status Badge */}
-      <div className="flex items-center space-x-2">
-        {verificationStatus === 'verified' && (
-          <div className="flex items-center space-x-1 text-green-600">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-xs font-medium">✅ Verified on Reactive Network</span>
-          </div>
-        )}
-        
-        {verificationStatus === 'pending' && (
-          <div className="flex items-center space-x-1 text-yellow-600">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-            <span className="text-xs font-medium">⏳ Pending Verification</span>
-          </div>
-        )}
-        
-        {verificationStatus === 'unverified' && !onChainId && (
-          <div className="flex items-center space-x-1 text-gray-600">
-            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-            <span className="text-xs font-medium">Not on blockchain</span>
-          </div>
-        )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex items-center space-x-2">
-        {!onChainId && (
-          <button
-            onClick={handleSubmitToBlockchain}
-            disabled={submitting}
-            className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {submitting ? '⏳ Submitting...' : '📝 Submit to Blockchain'}
-          </button>
-        )}
-        
-        {onChainId && verificationStatus === 'pending' && (
-          <div className="flex items-center space-x-1">
-            <button
-              onClick={() => handleVote(true)}
-              disabled={voting}
-              className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 transition-colors"
-            >
-              👍 Verify
-            </button>
-            <button
-              onClick={() => handleVote(false)}
-              disabled={voting}
-              className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 transition-colors"
-            >
-              👎 Reject
-            </button>
-          </div>
-        )}
-        
-        {onChainId && (
-          <a
-            href={`https://sepolia-explorer.reactive.network/tx/${onChainId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-blue-500 hover:text-blue-700 underline"
-          >
-            🔗 View on Reactive Explorer
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export function Web3ConnectButton() {
-  const { connected, connecting, connect, disconnect, account, chainId, switchToReactiveNetwork } = useWeb3();
-  const [switching, setSwitching] = useState(false);
-
-  const handleConnect = async () => {
-    try {
-      console.log('🔗 Attempting wallet connection...');
-      
-      if (!window.ethereum) {
-        alert('MetaMask not detected! Please install MetaMask to continue.');
         return;
       }
-      
-      console.log('✅ MetaMask detected, calling connect function...');
-      await connect();
-      console.log('🎉 Wallet connected successfully!');
-    } catch (error) {
-      console.error('❌ Connection failed:', error);
-      
-      // Show user-friendly error messages
-      if (error instanceof Error) {
-        if (error.message.includes('User rejected')) {
-          alert('Connection cancelled. Please accept the MetaMask connection request to continue.');
-        } else if (error.message.includes('MetaMask not installed')) {
-          alert('MetaMask not installed! Please install MetaMask browser extension.');
-        } else {
-          alert(`Connection failed: ${error.message}`);
+      if (mounted) setLoading(true);
+      try {
+        // Check on-chain verification flag for this news item
+        try {
+          const onChain = await getNewsVerification(String(newsId));
+          if (mounted) setVerified(Boolean(onChain));
+        } catch (e) {
+          if (mounted) setVerified(null);
         }
-      } else {
-        alert('Connection failed. Please try again.');
+
+        // If wallet connected and contract exposes verifier info, check if current account is an authorized verifier
+        if (connected && account && newsContract && typeof newsContract.getVerifierInfo === 'function') {
+          try {
+            const info = await newsContract.getVerifierInfo(account);
+            const authorized = info && (info.authorized ?? info[0]);
+            if (mounted) setIsVerifier(Boolean(authorized));
+          } catch (e) {
+            if (mounted) setIsVerifier(null);
+          }
+        } else {
+          if (mounted) setIsVerifier(null);
+        }
+      } finally {
+        if (mounted) setLoading(false);
       }
-    }
-  };
+    };
 
-  const handleSwitchNetwork = async () => {
-    setSwitching(true);
-    try {
-      await switchToReactiveNetwork();
-    } catch (error) {
-      console.error('Network switch failed:', error);
-    } finally {
-      setSwitching(false);
-    }
-  };
+    load();
+    return () => { mounted = false; };
+  }, [newsId, connected, account, getNewsVerification, newsContract]);
 
-  if (!connected) {
+  // Show verified state priority -> verifier badge -> not on blockchain
+  if (loading) {
     return (
-      <div className="space-y-2">
-        <button
-          onClick={handleConnect}
-          disabled={connecting}
-          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
-        >
-          {connecting ? '🔄 Connecting...' : '🔗 Connect Wallet'}
-        </button>
-        
-        {/* Show MetaMask detection status */}
-        {typeof window !== 'undefined' && (
-          <div className="text-xs text-neutral-500">
-            {window.ethereum ? (
-              <span className="text-green-600">✅ MetaMask detected</span>
-            ) : (
-              <span className="text-red-500">❌ MetaMask not found - <a href="https://metamask.io" target="_blank" rel="noopener noreferrer" className="underline">Install MetaMask</a></span>
-            )}
-          </div>
-        )}
+      <div className="flex items-center gap-2 text-xs text-neutral-500">
+        <svg className="w-4 h-4 animate-spin text-neutral-400" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"></circle><path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+        <span>Checking on-chain</span>
       </div>
     );
   }
 
-  const isOnReactiveNetwork = chainId === 5318008;
+  if (verified) {
+    return (
+      <div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+        <svg viewBox="0 0 20 20" className="w-4 h-4 text-emerald-600 dark:text-emerald-300" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 10l3 3 7-7" /></svg>
+        <span>Verified on-chain</span>
+      </div>
+    );
+  }
+
+  if (isVerifier) {
+    return (
+      <div className="inline-flex items-center gap-2 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+        <svg viewBox="0 0 20 20" className="w-4 h-4 text-indigo-600 dark:text-indigo-300" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2l2 4 4 .5-3 3 .7 4L10 12l-3.7 2.5.7-4L4 6.5 8 6 10 2z" /></svg>
+        <span>You are an authorized verifier</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex items-center space-x-3">
-      <div className="flex items-center space-x-2">
-        <div className={`w-2 h-2 rounded-full ${isOnReactiveNetwork ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`}></div>
-        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-          {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : 'Connected'}
-        </span>
-      </div>
-      
-      {!isOnReactiveNetwork && (
-        <button
-          onClick={handleSwitchNetwork}
-          disabled={switching}
-          className="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 disabled:opacity-50 transition-colors"
-        >
-          {switching ? '🔄 Switching...' : '🔗 Switch to Reactive Network'}
-        </button>
-      )}
-      
-      <button
-        onClick={disconnect}
-        className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-      >
-        🚪 Disconnect
-      </button>
+    <div className="flex items-center space-x-1 text-xs text-neutral-600 dark:text-neutral-400">
+      <div className="w-2 h-2 bg-gray-400 rounded-full" />
+      <span>Not on blockchain</span>
     </div>
   );
 }
+

@@ -1,0 +1,150 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\DOMINIC\\Reactive-news-app\\contracts\\lib\\reactive\\AbstractReactive.sol": {
+      "lastModificationDate": 1759260574521,
+      "contentHash": "818287cbbcb5b0b55ae8b439d7d23be0",
+      "sourceName": "contracts/lib/reactive/AbstractReactive.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "AbstractReactive"
+      ]
+    },
+    "C:\\Users\\DOMINIC\\Reactive-news-app\\contracts\\ReactiveNewsValidator.sol": {
+      "lastModificationDate": 1759260709876,
+      "contentHash": "d18e3dc6104555687e5f6c4203fe5baa",
+      "sourceName": "contracts/ReactiveNewsValidator.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./lib/reactive/IReactive.sol",
+        "./lib/reactive/AbstractReactive.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "ReactiveNewsValidator"
+      ]
+    },
+    "C:\\Users\\DOMINIC\\Reactive-news-app\\contracts\\lib\\reactive\\IReactive.sol": {
+      "lastModificationDate": 1759260568829,
+      "contentHash": "750871488fb2f9586e6352b204cea8c4",
+      "sourceName": "contracts/lib/reactive/IReactive.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "IReactive"
+      ]
+    },
+    "C:\\Users\\DOMINIC\\Reactive-news-app\\contracts\\ReactiveNewsFactory.sol": {
+      "lastModificationDate": 1758774673893,
+      "contentHash": "a92477f168bb0f1a37086258aa567b39",
+      "sourceName": "contracts/ReactiveNewsFactory.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./ReactiveNewsValidator.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "ReactiveNewsFactory"
+      ]
+    }
+  }
+}

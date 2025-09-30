@@ -227,7 +227,7 @@ export function NewsFetcher() {
               )}
             </div>
           ) : (
-            currentItems.map((item) => {
+            currentItems.map((item: NewsItem) => {
               const isNewItem = newItemIds.has(item.id);
               const isSaved = isNewsSaved(item.id);
               
@@ -370,6 +370,7 @@ export function NewsFetcher() {
                       {/* Blockchain Verification Badge */}
                       <div className="mb-3">
                         <VerificationBadge
+                          newsId={item.id}
                           title={item.title}
                           content={item.content}
                           category={item.category}
@@ -429,7 +430,7 @@ export function NewsFetcher() {
                 </article>
               );
             })
-          )}
+            )}
 
           {/* Pagination */}
           {totalPages > 1 && (

@@ -398,9 +398,48 @@ export default function LearnPage() {
               <span className="text-xs text-neutral-500 dark:text-neutral-400">Scalable</span>
             </div>
           </div>
+  </section>
+
+  {/* --- About content merged below --- */}
+      
+        <LearnQuiz />
+
+        {/* About the Developer - moved below the quiz */}
+        <section className="p-4">
+          <h2 className="text-3xl font-semibold mb-4">About the Developer</h2>
+          <p className="mb-6 text-neutral-700 dark:text-neutral-300">
+            Emmanuel Fidelis Essien is a frontend engineer focused on building performant, accessible user interfaces for web3 and data-intensive applications. He enjoys translating complex real‑time concepts into intuitive product experiences using React, Next.js, and modern design systems.
+          </p>
+          <p className="mb-6 text-neutral-700 dark:text-neutral-300">
+            This project combines two long‑standing interests—on‑chain analytics and interface engineering—while demonstrating structured state management, deterministic data feeds, and a progressive UI foundation that can evolve into a production monitoring suite.
+          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Connect</span>
+            <div className="flex items-center gap-3">
+              <a href="https://wa.me/2349125913571" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="group p-2 rounded-lg border border-neutral-300/60 dark:border-neutral-700 hover:border-green-500/70 hover:bg-green-500/10 transition">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform" fill="currentColor" aria-hidden="true">
+                  <path d="M12.04 2c-5.52 0-10 4.46-10 9.97 0 1.76.46 3.48 1.35 4.99L2 22l5.2-1.35a10.07 10.07 0 0 0 4.83 1.23h.01c5.52 0 10-4.46 10-9.97 0-2.67-1.06-5.18-2.98-7.07A10.14 10.14 0 0 0 12.04 2Zm0 1.8c2.17 0 4.22.84 5.76 2.36a8.16 8.16 0 0 1 2.4 5.8c0 4.54-3.72 8.22-8.29 8.22-1.45 0-2.88-.38-4.14-1.11l-.3-.17-3.08.8.82-3-.18-.3A8.13 8.13 0 0 1 3.8 13.9c0-4.54 3.72-8.21 8.24-8.21Zm4.72 11.78c-.26-.13-1.53-.75-1.77-.84-.24-.09-.41-.13-.58.13-.17.26-.67.84-.82 1.02-.15.17-.3.2-.56.07-.26-.13-1.1-.4-2.1-1.27-.78-.68-1.31-1.52-1.46-1.78-.15-.26-.02-.4.11-.53.12-.12.26-.3.39-.45.13-.15.17-.26.26-.43.09-.17.04-.32-.02-.45-.07-.13-.58-1.39-.8-1.9-.21-.5-.42-.43-.58-.44-.15-.01-.32-.01-.49-.01-.17 0-.45.06-.68.32-.24.26-.9.88-.9 2.14 0 1.26.93 2.48 1.06 2.65.13.17 1.83 2.92 4.53 4 2.71 1.07 2.71.71 3.2.67.49-.04 1.6-.64 1.83-1.26.23-.62.23-1.15.16-1.26-.07-.11-.24-.17-.5-.3Z" />
+                </svg>
+              </a>
+              <a href="https://github.com/emma31-dev" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="group p-2 rounded-lg border border-neutral-300/60 dark:border-neutral-700 hover:border-neutral-500 hover:bg-neutral-500/10 transition">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-neutral-800 dark:text-neutral-200 group-hover:scale-110 transition-transform" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M12 2C6.48 2 2 6.58 2 12.14c0 4.47 2.87 8.26 6.84 9.61.5.1.68-.22.68-.48 0-.24-.01-.87-.01-1.71-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.52 1.06 1.52 1.06.9 1.56 2.36 1.11 2.94.85.09-.67.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.32.1-2.75 0 0 .84-.27 2.75 1.05a9.3 9.3 0 0 1 2.5-.34c.85 0 1.7.11 2.5.34 1.9-1.32 2.74-1.05 2.74-1.05.55 1.43.2 2.49.1 2.75.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.95.68 1.92 0 1.38-.01 2.49-.01 2.83 0 .26.18.59.69.48A10.16 10.16 0 0 0 22 12.14C22 6.58 17.52 2 12 2Z" clipRule="evenodd" />
+                </svg>
+              </a>
+              <a href="https://twitter.com/emmafidel31" target="_blank" rel="noopener noreferrer" aria-label="Twitter / X" className="group p-2 rounded-lg border border-neutral-300/60 dark:border-neutral-700 hover-border-sky-500/70 hover:bg-sky-500/10 transition">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform" fill="currentColor" aria-hidden="true">
+                  <path d="M17.53 3h2.9l-6.35 7.27L22 21h-6.4l-4.54-5.95L5.6 21H2.68l6.8-7.8L2 3h6.5l4.1 5.47L17.53 3Zm-1.12 15.68h1.61L7.65 4.22H5.9l10.51 14.46Z" />
+                </svg>
+              </a>
+              <a href="https://portfolio-73mw.vercel.app" target="_blank" rel="noopener noreferrer" aria-label="Portfolio website" className="group p-2 rounded-lg border border-neutral-300/60 dark:border-neutral-700 hover-border-indigo-500/70 hover:bg-indigo-500/10 transition">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2.25c-5.38 0-9.75 4.37-9.75 9.75s4.37 9.75 9.75 9.75 9.75-4.37 9.75-9.75S17.38 2.25 12 2.25Zm0 1.5c1.3 0 2.52.3 3.6.84-.45.62-.84 1.38-1.14 2.25H9.54c-.3-.87-.69-1.63-1.14-2.25A8.2 8.2 0 0 1 12 3.75Zm-3.3 10.5c-.18-.75-.3-1.57-.33-2.4h6.26c-.03.83-.15 1.65-.33 2.4H8.7Zm.6 1.5h5.4c-.42 1.38-1.05 2.46-1.8 3.12-.3.27-.6.48-.9.6-.3-.12-.6-.33-.9-.6-.75-.66-1.38-1.74-1.8-3.12Zm-2.04-6c.03-.83.15-1.65.33-2.4h6.6c.18.75.3 1.57.33 2.4H7.26Zm8.4 0c-.03-.9-.15-1.77-.36-2.58.36-.96.87-1.74 1.47-2.28A8.27 8.27 0 0 1 20.25 12c0 2.25-.9 4.29-2.37 5.77-.6-.54-1.11-1.32-1.47-2.28.21-.81.33-1.68.36-2.58Zm-9.33-4.86c.6.54 1.11 1.32 1.47 2.28-.21.81-.33 1.68-.36 2.58.03.9.15 1.77.36 2.58-.36.96-.87 1.74-1.47 2.28A8.27 8.27 0 0 1 3.75 12c0-2.25.9-4.29 2.37-5.77Z" />
+                </svg>
+              </a>
+            </div>
+          </div>
         </section>
       </div>
-        <LearnQuiz />
       </div>
     </AuthGate>
   );

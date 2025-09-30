@@ -10,9 +10,9 @@
   border: 1.5px solid #4338CA;
   box-shadow: 0 0 0 2px rgba(99,102,241,0.55), 0 2px 6px -1px rgba(0,0,0,0.35);
 }
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 /* Font classes */
 body {
@@ -89,25 +89,26 @@ h3 { font-size:1.25rem; line-height:1.75rem; font-weight:600; }
 }
 
 /* Light theme (default) */
+/* Consistent blue and accent light blue */
 :root {
   --background: #ffffff;
-  --foreground: #000000; /* Explicitly set black text for light mode */
-  --surface: #fcfcfd; /* Lighter gray for light mode */
+  --foreground: #000000;
+  --surface: #fcfcfd;
   --border: #d9dde3;
-  --accent: #4f46e5;
-  --accent-hover: #6366f1;
-  --accent-active: #4338ca;
+  --accent: #2563eb; /* blue-600 */
+  --accent-hover: #60a5fa; /* blue-400 */
+  --accent-active: #1e40af; /* blue-800 */
 }
 
 /* Dark theme overrides */
 .dark {
   --background: #0d1117;
-  --foreground: #d1d5db; /* Light gray text for dark mode */
+  --foreground: #d1d5db;
   --surface: #161b22;
   --border: #30363d;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --accent-active: #4f46e5;
+  --accent: #60a5fa; /* blue-400 for accent in dark mode */
+  --accent-hover: #2563eb; /* blue-600 for hover in dark mode */
+  --accent-active: #1e40af; /* blue-800 for active in dark mode */
 }
 
 body {
@@ -203,40 +204,61 @@ a:active {
 
 /* Floating background animations (enhanced for subtle continuous motion) */
 @keyframes floatA {
-  0%, 100% { transform: translate3d(0,0,0) scale(1); }
-  25% { transform: translate3d(6px,-18px,0) scale(1.015); }
-  50% { transform: translate3d(-4px,-35px,0) scale(1.03); }
-  75% { transform: translate3d(-2px,-14px,0) scale(1.012); }
+  /* gentler vertical motion with smooth easing points */
+  0% { transform: translate3d(0,0,0) scale(1); }
+  25% { transform: translate3d(4px,-10px,0) scale(1.008); }
+  50% { transform: translate3d(-3px,-18px,0) scale(1.015); }
+  75% { transform: translate3d(-1px,-9px,0) scale(1.006); }
+  100% { transform: translate3d(0,0,0) scale(1); }
 }
 @keyframes floatB {
-  0%, 100% { transform: translate3d(0,0,0) rotate(0deg) scale(1); }
-  20% { transform: translate3d(-10px,-22px,0) rotate(3deg) scale(1.01); }
-  50% { transform: translate3d(4px,-45px,0) rotate(8deg) scale(1.028); }
-  80% { transform: translate3d(8px,-20px,0) rotate(4deg) scale(1.015); }
+  0% { transform: translate3d(0,0,0) rotate(0deg) scale(1); }
+  25% { transform: translate3d(-6px,-12px,0) rotate(2deg) scale(1.006); }
+  50% { transform: translate3d(3px,-24px,0) rotate(5deg) scale(1.016); }
+  75% { transform: translate3d(6px,-10px,0) rotate(2deg) scale(1.008); }
+  100% { transform: translate3d(0,0,0) rotate(0deg) scale(1); }
 }
 @keyframes floatC {
-  0%, 100% { transform: translate3d(0,0,0) scale(1); }
-  50% { transform: translate3d(3px,-30px,0) scale(1.02); }
+  0% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(2px,-15px,0) scale(1.01); }
+  100% { transform: translate3d(0,0,0) scale(1); }
 }
-/* Micro jitter / noise wobble layered animation for more organic feel */
+/* Micro jitter / noise wobble layered animation for more organic feel (smaller amplitude, continuous) */
 @keyframes floatNoise {
-  0%, 100% { transform: translate3d(0,0,0); }
-  25% { transform: translate3d(1px,-2px,0); }
-  50% { transform: translate3d(-1px,1px,0); }
-  75% { transform: translate3d(2px,0,0); }
+  0% { transform: translate3d(0,0,0); }
+  20% { transform: translate3d(0.6px,-1px,0); }
+  40% { transform: translate3d(-0.6px,1px,0); }
+  60% { transform: translate3d(0.3px,0.5px,0); }
+  80% { transform: translate3d(-0.3px,-0.5px,0); }
+  100% { transform: translate3d(0,0,0); }
 }
 
 /* White emphasis utility for floats in dark mode */
 .float-white { filter: brightness(1.15) contrast(1.1) saturate(1.05); }
 .dark .float-white { filter: brightness(2.2) contrast(1.15) saturate(1.1); }
 
-.animate-float-slow { animation: floatA 14s ease-in-out infinite, floatNoise 5.5s linear infinite alternate; }
-.animate-float-medium { animation: floatB 10s ease-in-out infinite, floatNoise 4.5s linear infinite alternate; }
-.animate-float-fast { animation: floatC 8.5s ease-in-out infinite, floatNoise 3.8s linear infinite alternate; }
+.animate-float-slow { will-change: transform; animation: floatA 14s cubic-bezier(.22,.9,.35,1) infinite, floatNoise 5.5s linear infinite; }
+.animate-float-medium { will-change: transform; animation: floatB 11s cubic-bezier(.22,.9,.35,1) infinite, floatNoise 4.8s linear infinite; }
+.animate-float-fast { will-change: transform; animation: floatC 9s cubic-bezier(.22,.9,.35,1) infinite, floatNoise 3.6s linear infinite; }
 
 /* Reduced motion respect (override layered animations) */
 @media (prefers-reduced-motion: reduce) {
   .animate-float-slow,
   .animate-float-medium,
   .animate-float-fast { animation: none !important; }
+}
+
+/* Also respect explicit runtime attribute set on documentElement by early script */
+[data-prefers-reduced-motion="true"] .animate-float-slow,
+[data-prefers-reduced-motion="true"] .animate-float-medium,
+[data-prefers-reduced-motion="true"] .animate-float-fast {
+  animation: none !important;
+}
+
+/* Allow explicit user opt-in to force animations even when reduce-motion is set */
+[data-force-animate="true"] .animate-float-slow,
+[data-force-animate="true"] .animate-float-medium,
+[data-force-animate="true"] .animate-float-fast {
+  /* Re-apply the original animations regardless of reduced-motion */
+  animation: floatA 14s cubic-bezier(.22,.9,.35,1) infinite, floatNoise 5.5s linear infinite !important;
 }
