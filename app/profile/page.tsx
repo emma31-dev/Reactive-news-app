@@ -5,8 +5,7 @@ import { useAuth } from '../../components/AuthContext';
 import { useSavedNews } from '../../components/SavedNewsContext';
 import { useWeb3 } from '../../components/Web3Context';
 import { ChainSelector } from '../../components/ChainSelector';
-import ClientOnlyAdvancedMonitor from '../../components/ClientOnlyAdvancedMonitor';
-import { WalletDiagnostics } from '../../components/WalletDiagnostics';
+
 
 export default function ProfilePage() {
   return (
@@ -74,8 +73,6 @@ function WalletSection({ hideHeader = false }: { hideHeader?: boolean }) {
               Connect to participate in news verification, earn rewards, and access blockchain features
             </p>
             
-            {/* Diagnostics Panel (for debugging) */}
-            <WalletDiagnostics />
             
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800 text-left">
               <h5 className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">🚿 Free Testnet Tokens</h5>

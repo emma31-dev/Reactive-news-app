@@ -1,5 +1,8 @@
+"use client"
 import { AuthGate } from '../../components/AuthGate';
-import LearnQuiz from '../../components/LearnQuiz';
+import dynamic from 'next/dynamic';
+
+const LearnQuiz = dynamic(() => import('../../components/LearnQuiz'), { ssr: false });
 
 export default function LearnPage() {
   return (

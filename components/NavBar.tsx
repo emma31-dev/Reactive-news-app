@@ -78,7 +78,6 @@ function MobileDrawer({ open, setOpen, user, logout, toggleTheme, dark, pathname
           <div className="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-800">
               <div className="flex flex-col space-y-2 py-1">
               <a onClick={() => setOpen(false)} className={linkCls('/')} href="/">Home</a>
-              <a onClick={() => setOpen(false)} className={linkCls('/news')} href="/news">News</a>
               {user && <a onClick={() => setOpen(false)} className={linkCls('/profile')} href="/profile">Profile</a>}
               <a onClick={() => setOpen(false)} className={linkCls('/learn')} href="/learn">Learn</a>
               <a onClick={() => setOpen(false)} className={linkCls('/about')} href="/about">About</a>
@@ -112,7 +111,6 @@ function NavLinks({ user, logout, toggleTheme, dark, pathname }: any) {
       </button>
       {/* animate button removed - animations enabled by default */}
   <a className={linkCls('/')} href="/">Home</a>
-  <a className={linkCls('/news')} href="/news">News</a>
   {user && <a className={linkCls('/profile')} href="/profile">Profile</a>}
   <a className={linkCls('/learn')} href="/learn">Learn</a>
   <a className={linkCls('/about')} href="/about">About</a>

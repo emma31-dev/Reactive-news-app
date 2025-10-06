@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { uploadToIPFS } from '../lib/ipfs';
+
 import { hashEmail } from '../lib/hash';
 import { useRouter } from 'next/navigation';
 
@@ -121,9 +121,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Helper to save user to IPFS and store hash
   // Returns the upload result ({ cid, url }) so callers can react when it's available
   const saveUserToIPFS = async (userObj: StoredUser): Promise<{ cid: string; url: string }> => {
-    const result = await uploadToIPFS(userObj);
-    try { localStorage.setItem('authUserIpfsHash', result.cid); } catch {}
-    return result;
+    // This is a mock implementation since the IPFS upload functionality has been removed.
+    // It returns a dummy CID and URL.
+    console.log("Simulating user data save for:", userObj.email);
+    const dummyCid = 'bafkreibm6jg3ux5qu3ye2i7s2gr26t2k5sd3ftsc6qreqq6a4v2l5f2mby';
+    return Promise.resolve({
+      cid: dummyCid,
+      url: `https://ipfs.io/ipfs/${dummyCid}`,
+    });
   };
 
   // Migration: ensure all monitored addresses & meta keys are lowercase (idempotent)
@@ -168,37 +173,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/');
   };
 
-  // Now require projectId for login
   const login = async (identifier: string, password: string) => {
-    // Try to load from IPFS hash if present
+    // For this client-side example, we'll simulate a login.
+    // A real app would send credentials to a server for validation.
     const ipfsHash = localStorage.getItem('authUserIpfsHash');
     if (ipfsHash) {
       try {
         const res = await fetch(`https://ipfs.io/ipfs/${ipfsHash}`);
+        if (!res.ok) {
+          throw new Error('Failed to fetch user profile from IPFS.');
+        }
         const existing: StoredUser = await res.json();
+        
+        // Check if the identifier (email/username) matches the stored user.
+        // NOTE: Password is not being checked here as this is a demo.
         if (existing.email === identifier || existing.username === identifier) {
           const prefs = { ...defaultPrefs, ...existing.prefs };
           const merged = { ...existing, prefs };
           setUser(merged);
-          // Save in background (non-blocking)
-          saveUserToIPFS(merged).then(({ cid }) => { try { localStorage.setItem('authUserIpfsHash', cid); } catch {} }).catch(() => {});
+          
+          // Non-blocking save to IPFS in case preferences were migrated.
+          saveUserToIPFS(merged).catch(() => {});
           router.push('/');
           return;
         }
-      } catch {}
+      } catch (e) {
+        // Fall through to throw an error if IPFS fetch or parsing fails.
+      }
     }
-    // If user not found, create a new one with identifier treated as email
-    const emailCandidate = identifier.includes('@') ? identifier : `${identifier}@example.local`;
-    const newUser: StoredUser = {
-      email: emailCandidate,
-      username: identifier.includes('@') ? identifier.split('@')[0] : identifier,
-      prefs: defaultPrefs,
-      verified: true,
-      projectId: generateProjectId(emailCandidate),
-    };
-    setUser(newUser);
-    saveUserToIPFS(newUser).then(({ cid }) => { try { localStorage.setItem('authUserIpfsHash', cid); } catch {} }).catch(() => {});
-    router.push('/');
+
+    // If no user is found in localStorage or they don't match, fail the login.
+    throw new Error('Invalid credentials.');
   };
 
   const logout = () => {

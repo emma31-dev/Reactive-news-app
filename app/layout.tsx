@@ -9,7 +9,6 @@ import { NavBarWrapper } from '../components/NavBarWrapper';
 import { ThemeProvider } from '../components/ThemeContext';
 import { Web3Provider } from '../components/Web3Context';
 import { Web3ModalProvider } from '../components/Web3ModalProvider';
-import PageTransition from '../components/PageTransition';
 import ConditionalPriceBar from '../components/ConditionalPriceBar';
 import { Inter, Outfit } from 'next/font/google';
 
@@ -63,9 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                           {/* Content backdrop so floats show softly behind */}
                           <div className="flex-1 flex flex-col bg-transparent backdrop-blur-[2px] transition-colors">
                             <main className="flex-1 container mx-auto px-4 py-4 pt-20 lg:px-8 xl:px-12 max-w-4xl xl:max-w-6xl w-full pb-20">
-                              <PageTransition>
-                                {children}
-                              </PageTransition>
+                              {children}
                             </main>
                           </div>
                           {/* Global REACT Price Bar - Hidden on /chart via ConditionalPriceBar */}

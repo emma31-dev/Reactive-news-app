@@ -194,38 +194,29 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   // (old non-memoized connectWallet removed; replaced by memoized version above)
 
   const connect = useCallback(async () => {
-    if (connecting) {
-      console.log('🔄 Connection already in progress...');
-      return;
-    }
-    
-    setConnecting(true);
-    console.log('🚀 Starting wallet connection process...');
-    
-    try {
-      if (!window.ethereum) {
-        throw new Error('MetaMask not installed');
+      if (connecting) {
+        return;
       }
+    
+      setConnecting(true);
+    
+      try {
+        if (!window.ethereum) {
+          throw new Error('MetaMask not installed');
+        }
       
-      console.log('📝 Requesting account access...');
-      await window.ethereum!.request({ method: 'eth_requestAccounts' });
+        await window.ethereum!.request({ method: 'eth_requestAccounts' });
       
-      console.log('🌐 Creating ethers provider...');
-  const providerInstance = new ethers.BrowserProvider(window.ethereum!);
-  console.log('🔗 Connecting wallet...');
-  await connectWallet(providerInstance);
+        const providerInstance = new ethers.BrowserProvider(window.ethereum!);
+        await connectWallet(providerInstance);
       
-      console.log('✅ Wallet connection complete!');
-      
-    } catch (error) {
-      console.error('❌ Connection error:', error);
-      throw error;
-    } finally {
-      setConnecting(false);
-    }
-  }, [connecting, connectWallet]);
-
-  const disconnect = useCallback(() => {
+      } catch (error) {
+        console.error('❌ Connection error:', error);
+        throw error;
+      } finally {
+        setConnecting(false);
+      }
+    }, [connecting, connectWallet]);  const disconnect = useCallback(() => {
     setProvider(null);
     setSigner(null);
     setAccount(null);

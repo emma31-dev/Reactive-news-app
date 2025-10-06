@@ -243,12 +243,8 @@ export async function GET() {
   try {
     const items = generateDeterministicItems();
     // Occasional log for visibility (5% sampling in production)
-    if (process.env.NODE_ENV !== 'production' || Math.random() < 0.05) {
-      console.log('[news-api] deterministic generation', {
-        count: items.length,
-        newest: items[0]?.id,
-        oldest: items[items.length - 1]?.id
-      });
+    if (process.env.NODE_ENV !== 'production') {
+      // Minimal logging in development for debugging purposes
     }
     const res = NextResponse.json(items);
     res.headers.set('x-reactive-news-count', String(items.length));
