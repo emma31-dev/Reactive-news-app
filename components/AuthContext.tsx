@@ -1,9 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getHeliaJSON } from '../lib/ipfs';
 import { hashEmail } from '../lib/hash';
 import { useRouter } from 'next/navigation';
-import { CID } from 'multiformats/cid';
 
 interface UserPrefs {
   'Whale Watch': boolean;
@@ -71,37 +69,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadUserFromIPFS = async () => {
       if (typeof window === 'undefined') return;
-      const ipfsHash = localStorage.getItem('authUserIpfsHash');
-      if (ipfsHash) {
+      const cid = localStorage.getItem('authUserCid');
+      if (cid) {
         try {
-          const j = await getHeliaJSON();
-          const cid = CID.parse(ipfsHash);
-          const userObject = await j.get(cid);
-
-          if (!userObject) {
-            localStorage.removeItem('authUserIpfsHash');
-            return;
-          }
-
-          const parsedUser = userObject as unknown as StoredUser;
-
-          if (parsedUser) {
+          // Try to fetch user from our server-side API
+          const res = await fetch(`/api/user?cid=${encodeURIComponent(cid)}`);
+          if (!res.ok) {
+            localStorage.removeItem('authUserCid');
+          } else {
+            const parsedUser = await res.json() as StoredUser;
             const prefs = parsedUser.prefs || defaultPrefs;
             const needsMigration = Object.keys(defaultPrefs).some(k => !(k in prefs));
-            
             if (needsMigration || !parsedUser.prefs) {
               const migrated = { ...defaultPrefs, ...prefs };
               const newUser = { ...parsedUser, prefs: migrated };
               setUser(newUser);
-              await saveUserToIPFS(newUser);
+              // save updated version
+              await saveUserToServer(newUser);
             } else {
               setUser(parsedUser);
             }
-          } else {
-             localStorage.removeItem('authUserIpfsHash');
           }
         } catch (e) {
-          // Network or transient error: do not remove hash, allow retry on next navigation
+          // ignore
         }
       }
       // Monitored addresses and meta (optional: can also be IPFS)
@@ -121,13 +111,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadUserFromIPFS().finally(() => setInitializing(false));
   }, []);
 
-  // Helper to save user to IPFS and store hash
-// Returns the upload result ({ cid }) so callers can react when it's available
-const saveUserToIPFS = async (userObj: StoredUser): Promise<{ cid: string }> => {
-  const j = await getHeliaJSON();
-  const cid = await j.add(JSON.stringify(userObj));
-  return { cid: cid.toString() };
-};
+  // Helper to save user to server and return CID-like id
+  const saveUserToServer = async (userObj: StoredUser): Promise<{ cid: string }> => {
+    const res = await fetch('/api/user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userObj),
+    });
+    if (!res.ok) throw new Error('Failed to save user');
+    return res.json();
+  };
 
   // Migration: ensure all monitored addresses & meta keys are lowercase (idempotent)
   useEffect(() => {
@@ -169,8 +162,8 @@ const saveUserToIPFS = async (userObj: StoredUser): Promise<{ cid: string }> => 
     };
 
     try {
-      // 1. Save user data to IPFS
-      const { cid } = await saveUserToIPFS(newUser);
+      // 1. Save user data to server
+      const { cid } = await saveUserToServer(newUser);
 
       // 2. Register the user in the CID registry
       const registerRes = await fetch('/api/cid-registry', {
@@ -186,55 +179,39 @@ const saveUserToIPFS = async (userObj: StoredUser): Promise<{ cid: string }> => 
 
       // 3. Set user state and cache CID
       setUser(newUser);
-      localStorage.setItem('authUserIpfsHash', cid);
+      try { localStorage.setItem('authUserCid', cid); } catch {}
       router.push('/');
-
     } catch (error) {
-      console.error("Signup failed:", error);
-      // Optionally, clean up IPFS data if registration fails
-      throw error; // Re-throw to be caught by the UI
+      console.error('Signup failed:', error);
+      throw error;
     }
   };
 
   const login = async (identifier: string, password: string) => {
     try {
-      // 1. Look up user in the CID registry
+      // 1. Look up username in the CID registry
       const res = await fetch(`/api/cid-registry?username=${encodeURIComponent(identifier)}`);
-      if (!res.ok) {
-        throw new Error('Invalid username or password.');
-      }
+      if (!res.ok) throw new Error('Invalid username or password');
       const { cid } = await res.json();
 
-      // 2. Fetch user data from IPFS using the CID
-      const j = await getHeliaJSON();
-      const userObject = await j.get(cid);
+      // 2. Fetch user record from server
+      const userRes = await fetch(`/api/user?cid=${encodeURIComponent(cid)}`);
+      if (!userRes.ok) throw new Error('Failed to load user');
+      const existing = await userRes.json() as StoredUser;
 
-      if (!userObject) {
-          throw new Error('Failed to retrieve user profile from IPFS.');
-      }
-      
-      const existing: StoredUser = userObject as unknown as StoredUser;
-
-      // NOTE: Password is not being checked here as this is a demo.
       const prefs = { ...defaultPrefs, ...existing.prefs };
       const merged = { ...existing, prefs };
       setUser(merged);
-
-      // 3. Cache the CID in localStorage
-      localStorage.setItem('authUserIpfsHash', cid);
-      
-      // Non-blocking save to IPFS in case preferences were migrated.
-      saveUserToIPFS(merged).catch(() => {});
+      try { localStorage.setItem('authUserCid', cid); } catch {}
       router.push('/');
-
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw new Error('Invalid username or password.');
+    } catch (e) {
+      console.error('Login failed', e);
+      throw new Error('Invalid username or password');
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('authUserIpfsHash');
+    localStorage.removeItem('authUserCid');
     localStorage.removeItem('monitoredAddresses');
     localStorage.removeItem('monitoredOnly');
     localStorage.removeItem('monitoredMeta');
@@ -249,7 +226,8 @@ const saveUserToIPFS = async (userObj: StoredUser): Promise<{ cid: string }> => 
     if (!user) return;
     const updated: StoredUser = { ...user, prefs };
     setUser(updated);
-    await saveUserToIPFS(updated);
+    const { cid } = await saveUserToServer(updated);
+    try { localStorage.setItem('authUserCid', cid); } catch {}
   };
 
   const updateUsername = async (username: string) => {
@@ -258,7 +236,8 @@ const saveUserToIPFS = async (userObj: StoredUser): Promise<{ cid: string }> => 
     if (!clean) return;
     const updated: StoredUser = { ...user, username: clean };
     setUser(updated);
-    await saveUserToIPFS(updated);
+    const { cid } = await saveUserToServer(updated);
+    try { localStorage.setItem('authUserCid', cid); } catch {}
   };
 
   // Monitored address management

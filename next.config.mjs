@@ -22,6 +22,22 @@ const nextConfig = {
       "url": false,
       "zlib": false,
     };
+
+    // Some libraries import Node core modules using the "node:" scheme (e.g. "node:stream").
+    // Map those to false so Webpack won't attempt to resolve them during the build.
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      'node:stream': false,
+      'node:crypto': false,
+      'node:util': false,
+      'node:assert': false,
+      'node:http': false,
+      'node:https': false,
+      'node:os': false,
+      'node:url': false,
+      'node:zlib': false,
+      'node:buffer': false,
+    };
     return config;
   }
 };

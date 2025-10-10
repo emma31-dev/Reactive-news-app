@@ -11,10 +11,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@helia/json": "^5.0.1",
     "@web3modal/react": "^2.7.1",
     "ethers": "^6.15.0",
-    "helia": "^6.0.1",
+    
     "next": "^15.5.4",
     "react": "18.3.1",
     "react-dom": "18.3.1"
