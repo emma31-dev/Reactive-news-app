@@ -1,8 +1,9 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-
+import { getHeliaJSON } from '../lib/ipfs';
 import { hashEmail } from '../lib/hash';
 import { useRouter } from 'next/navigation';
+import { CID } from 'multiformats/cid';
 
 interface UserPrefs {
   'Whale Watch': boolean;
@@ -73,19 +74,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const ipfsHash = localStorage.getItem('authUserIpfsHash');
       if (ipfsHash) {
         try {
-          const res = await fetch(`https://ipfs.io/ipfs/${ipfsHash}`);
-          if (!res.ok) {
-            // Only remove if 404 (not found), otherwise keep for retry
-            if (res.status === 404) {
-              localStorage.removeItem('authUserIpfsHash');
-            }
+          const j = await getHeliaJSON();
+          const cid = CID.parse(ipfsHash);
+          const userObject = await j.get(cid);
+
+          if (!userObject) {
+            localStorage.removeItem('authUserIpfsHash');
             return;
           }
-          const parsedUser = await res.json();
-          if (parsedUser.prefs) {
-            const needsMigration = Object.keys(defaultPrefs).some(k => !(k in parsedUser.prefs));
-            if (needsMigration) {
-              const migrated = { ...defaultPrefs, ...parsedUser.prefs };
+
+          const parsedUser = userObject as unknown as StoredUser;
+
+          if (parsedUser) {
+            const prefs = parsedUser.prefs || defaultPrefs;
+            const needsMigration = Object.keys(defaultPrefs).some(k => !(k in prefs));
+            
+            if (needsMigration || !parsedUser.prefs) {
+              const migrated = { ...defaultPrefs, ...prefs };
               const newUser = { ...parsedUser, prefs: migrated };
               setUser(newUser);
               await saveUserToIPFS(newUser);
@@ -93,9 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setUser(parsedUser);
             }
           } else {
-            const newUser = { ...parsedUser, prefs: defaultPrefs };
-            setUser(newUser);
-            await saveUserToIPFS(newUser);
+             localStorage.removeItem('authUserIpfsHash');
           }
         } catch (e) {
           // Network or transient error: do not remove hash, allow retry on next navigation
@@ -119,17 +122,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Helper to save user to IPFS and store hash
-  // Returns the upload result ({ cid, url }) so callers can react when it's available
-  const saveUserToIPFS = async (userObj: StoredUser): Promise<{ cid: string; url: string }> => {
-    // This is a mock implementation since the IPFS upload functionality has been removed.
-    // It returns a dummy CID and URL.
-    console.log("Simulating user data save for:", userObj.email);
-    const dummyCid = 'bafkreibm6jg3ux5qu3ye2i7s2gr26t2k5sd3ftsc6qreqq6a4v2l5f2mby';
-    return Promise.resolve({
-      cid: dummyCid,
-      url: `https://ipfs.io/ipfs/${dummyCid}`,
-    });
-  };
+// Returns the upload result ({ cid }) so callers can react when it's available
+const saveUserToIPFS = async (userObj: StoredUser): Promise<{ cid: string }> => {
+  const j = await getHeliaJSON();
+  const cid = await j.add(JSON.stringify(userObj));
+  return { cid: cid.toString() };
+};
 
   // Migration: ensure all monitored addresses & meta keys are lowercase (idempotent)
   useEffect(() => {
@@ -155,55 +153,84 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (email: string, username: string, password: string) => {
     const cleanUsername = username.trim() || email.split('@')[0];
+
+    // Check if username is already taken
+    const checkRes = await fetch(`/api/cid-registry?username=${encodeURIComponent(cleanUsername)}`);
+    if (checkRes.ok) {
+        throw new Error('Username is already taken.');
+    }
+
     const newUser: StoredUser = {
       email,
       username: cleanUsername,
       prefs: defaultPrefs,
-      verified: true,
+      verified: true, // Assuming email verification is handled elsewhere
       projectId: generateProjectId(email),
     };
-    setUser(newUser);
-    // Save to IPFS in the background so signup/login do not block the UI.
-    // Persisting the CID will happen when upload completes.
-    saveUserToIPFS(newUser).then(({ cid }) => {
-      try { localStorage.setItem('authUserIpfsHash', cid); } catch {}
-    }).catch(() => {
-      // Swallow network errors here to avoid breaking the signup flow; keep user in-memory
-    });
-    router.push('/');
+
+    try {
+      // 1. Save user data to IPFS
+      const { cid } = await saveUserToIPFS(newUser);
+
+      // 2. Register the user in the CID registry
+      const registerRes = await fetch('/api/cid-registry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: cleanUsername, cid }),
+      });
+
+      if (!registerRes.ok) {
+        const { error } = await registerRes.json();
+        throw new Error(error || 'Failed to register user.');
+      }
+
+      // 3. Set user state and cache CID
+      setUser(newUser);
+      localStorage.setItem('authUserIpfsHash', cid);
+      router.push('/');
+
+    } catch (error) {
+      console.error("Signup failed:", error);
+      // Optionally, clean up IPFS data if registration fails
+      throw error; // Re-throw to be caught by the UI
+    }
   };
 
   const login = async (identifier: string, password: string) => {
-    // For this client-side example, we'll simulate a login.
-    // A real app would send credentials to a server for validation.
-    const ipfsHash = localStorage.getItem('authUserIpfsHash');
-    if (ipfsHash) {
-      try {
-        const res = await fetch(`https://ipfs.io/ipfs/${ipfsHash}`);
-        if (!res.ok) {
-          throw new Error('Failed to fetch user profile from IPFS.');
-        }
-        const existing: StoredUser = await res.json();
-        
-        // Check if the identifier (email/username) matches the stored user.
-        // NOTE: Password is not being checked here as this is a demo.
-        if (existing.email === identifier || existing.username === identifier) {
-          const prefs = { ...defaultPrefs, ...existing.prefs };
-          const merged = { ...existing, prefs };
-          setUser(merged);
-          
-          // Non-blocking save to IPFS in case preferences were migrated.
-          saveUserToIPFS(merged).catch(() => {});
-          router.push('/');
-          return;
-        }
-      } catch (e) {
-        // Fall through to throw an error if IPFS fetch or parsing fails.
+    try {
+      // 1. Look up user in the CID registry
+      const res = await fetch(`/api/cid-registry?username=${encodeURIComponent(identifier)}`);
+      if (!res.ok) {
+        throw new Error('Invalid username or password.');
       }
-    }
+      const { cid } = await res.json();
 
-    // If no user is found in localStorage or they don't match, fail the login.
-    throw new Error('Invalid credentials.');
+      // 2. Fetch user data from IPFS using the CID
+      const j = await getHeliaJSON();
+      const userObject = await j.get(cid);
+
+      if (!userObject) {
+          throw new Error('Failed to retrieve user profile from IPFS.');
+      }
+      
+      const existing: StoredUser = userObject as unknown as StoredUser;
+
+      // NOTE: Password is not being checked here as this is a demo.
+      const prefs = { ...defaultPrefs, ...existing.prefs };
+      const merged = { ...existing, prefs };
+      setUser(merged);
+
+      // 3. Cache the CID in localStorage
+      localStorage.setItem('authUserIpfsHash', cid);
+      
+      // Non-blocking save to IPFS in case preferences were migrated.
+      saveUserToIPFS(merged).catch(() => {});
+      router.push('/');
+
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw new Error('Invalid username or password.');
+    }
   };
 
   const logout = () => {
